@@ -1,6 +1,6 @@
-# Makefile
+# Makefile 
 
-.SUFFIXES: .o .F90
+.SUFFIXES: .o .F
 
 include ../macros
 
@@ -13,15 +13,14 @@ NWM_VERSION=\"$(nwm_version)\"
 F90FLAGS += -DNWM_VERSION=$(NWM_VERSION) -DWRF_HYDRO_VERSION=$(WRF_HYDRO_VERSION)
 
 OBJS = \
-	module_version.o \
-	module_hydro_stop.o
+	module_version.o
 
 all:	$(OBJS)
 
 ## The insertion of compile-time constants strangely requires the capital F in the extension.
-.F90.o:
+.F.o:
 	@echo "Utils Makefile:"
-	$(COMPILER90) $(CPPINVOKE) $(CPPFLAGS) -o $(@) $(F90FLAGS) $(LDFLAGS) $(MODFLAG) -I$(NETCDFINC) $(*).F90
+	$(COMPILER90) $(CPPINVOKE) $(CPPFLAGS) -o $(@) $(F90FLAGS) $(LDFLAGS) $(MODFLAG) -I$(NETCDFINC) $(*).F
 	@echo ""
 	ar -r ../lib/libHYDRO.a $(@)
 	cp *.mod ../mod
@@ -30,5 +29,5 @@ all:	$(OBJS)
 # Dependencies:
 #
 
-clean:
+clean:	
 	rm -f *.o *.mod *.stb *~

@@ -169,7 +169,7 @@ contains
     return
   end subroutine makegrids
 
-  subroutine make3grids (n,rmesh, thin_3d, nlev)
+  subroutine make3grids (n,rmesh, thin_3d)
 ! compute dimention of thinning box
 ! output (mlat,mlonx,istart_val)
     implicit none
@@ -177,7 +177,6 @@ contains
     integer(i_kind), intent(in) :: n  ! sensor index
     real(r_kind), intent(in) :: rmesh ! thinning box size
     logical, optional, intent(in) :: thin_3d
-    integer(i_kind), optional, intent(in) :: nlev ! number of vertical thinning grid
 
     integer(i_kind) i,ii,j,k,nlat,nlon
     integer(i_kind) icnt,mlonj
@@ -185,7 +184,6 @@ contains
     real(r_kind) twopi,halfpi,dlon_g,dlat_g,dlon_e,dlat_e
     real(r_kind) factor,factors,delon
     real(r_kind) rkm2dg,glatm,glatx
-    integer(i_kind) kstart, kend
 
 !   Initialize variables, set constants
       thinning_grid_conv(n)%dthin = 1
@@ -233,11 +231,7 @@ contains
      if( .not. present(thin_3d)) then
           allocate(thinning_grid_conv(n)%hll(thinning_grid_conv(n)%mlonx,thinning_grid_conv(n)%mlat))
      else
-       if ( present(nlev) ) then
-         allocate(thinning_grid_conv(n)%hll_3d(thinning_grid_conv(n)%mlonx,thinning_grid_conv(n)%mlat, 1:nlev))
-       else
-         allocate(thinning_grid_conv(n)%hll_3d(thinning_grid_conv(n)%mlonx,thinning_grid_conv(n)%mlat, kms:kme))
-       end if
+       allocate(thinning_grid_conv(n)%hll_3d(thinning_grid_conv(n)%mlonx,thinning_grid_conv(n)%mlat, kms:kme))
      end if
 
 !   Set up thinning grid lon & lat.  The lon & lat represent the location of the
@@ -264,14 +258,7 @@ contains
              thinning_grid_conv(n)%itxmax=thinning_grid_conv(n)%itxmax+1
              thinning_grid_conv(n)%hll(i,j)=thinning_grid_conv(n)%itxmax
           else
-             if ( present(nlev) ) then
-                kstart = 1
-                kend   = nlev
-             else
-                kstart = kms
-                kend   = kme
-             end if
-             do k = kstart, kend
+             do k=kms, kme
                 thinning_grid_conv(n)%itxmax=thinning_grid_conv(n)%itxmax+1
                 thinning_grid_conv(n)%hll_3d(i,j,k)=thinning_grid_conv(n)%itxmax
              end do 
@@ -392,7 +379,7 @@ contains
     return
   end subroutine map2grids
 
-  subroutine map2grids_conv(n,dlat_earth,dlon_earth,crit1,iobs,itx,ithin,itt,iobsout,iuse, zk, thin_3d, nlev)
+  subroutine map2grids_conv(n,dlat_earth,dlon_earth,crit1,iobs,itx,ithin,itt,iobsout,iuse, zk, thin_3d)
 !$$$  subprogram documentation block
 !                .      .    .                                       .
 ! subprogram:    map2grids
@@ -430,18 +417,13 @@ contains
     real(r_kind),intent(in):: dlat_earth,dlon_earth,crit1
     real(r_kind), optional, intent(in) :: zk    
     logical, optional, intent(in) :: thin_3d
-    integer(i_kind), optional, intent(in) :: nlev
 
     integer(i_kind) :: ix,iy,iz
     real(r_kind) dlat1,dlon1,dx,dy,dxx,dyy,dz,dzz
     real(r_kind) dist1,crit,dist2
     integer(i_kind) :: model_lev
 
-    if ( present(nlev) ) then
-       model_lev=nlev
-    else
-       model_lev=kme-kms+1
-    end if
+    model_lev=kme-kms+1
 
 !   Compute (i,j) indices of coarse mesh grid (grid number 1) which 
 !   contains the current observation.

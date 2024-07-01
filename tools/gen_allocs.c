@@ -646,9 +646,6 @@ gen_dealloc2 ( FILE * fp , char * structname , node_t * node )
             }
           }
         } else {
-
-  if (strcmp(fname,"chem_ic")==0)   continue ;  /* !!! add !!! */
-
 #ifdef USE_ALLOCATABLES
         fprintf(fp,
 "IF ( ALLOCATED( %s%s ) ) THEN \n", structname, fname ) ;
@@ -659,7 +656,7 @@ gen_dealloc2 ( FILE * fp , char * structname , node_t * node )
         fprintf(fp, 
 "  DEALLOCATE(%s%s,STAT=ierr)\n if (ierr.ne.0) then\n CALL wrf_error_fatal ( &\n'frame/module_domain.f: Failed to deallocate %s%s. ')\n endif\n",
 structname, fname, structname, fname ) ;
-#ifndef USE_ALLOCATABLES
+#ifdef USE_ALLOCATABLES
         fprintf(fp,
 "  NULLIFY(%s%s)\n",structname, fname ) ;
 #endif

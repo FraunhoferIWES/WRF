@@ -15,14 +15,14 @@ cat > endiantest.c << ENDIANTEST
 	} \
 	printf("\n");
 
-void fill(char *p, int size) {
+void fill(p, size) char *p; int size; {
 	char *ab= "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 	int i;
 
 	for (i=0; i<size; i++) p[i]= ab[i];
 }
 
-void endian(int byte_size) {
+void endian(byte_size) int byte_size; {
 	int j=0;
 	unsigned int mask, i, c;
 
@@ -31,7 +31,7 @@ void endian(int byte_size) {
 	Order(j);
 }
 
-int cprop(void) {
+int cprop() {
 	/* Properties of type char */
 	char c;
 	int byte_size;
@@ -42,7 +42,7 @@ int cprop(void) {
 	return byte_size;
 }
 
-int main(void)
+main()
 {
 	int byte_size;
 

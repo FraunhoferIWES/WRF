@@ -38,7 +38,6 @@
   #include <string.h>
   #include <unistd.h>
   #include "scan.h"
-  #include "gdata.h"
 
   #define __YYSCLASS
 
@@ -46,7 +45,7 @@
   extern char yytext[];
   extern FILE * yyin;
   /* extern int yyerrstatus; */
-
+  
   int nError   = 0;
   int nWarning = 0;
 
@@ -66,7 +65,7 @@
 %}
 
 %union{
-  char str[500];
+  char str[80];
 };
 
 %token JACOBIAN DOUBLE FUNCTION DEFVAR DEFRAD DEFFIX SETVAR SETRAD SETFIX 

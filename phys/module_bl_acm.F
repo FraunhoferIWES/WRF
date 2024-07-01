@@ -21,7 +21,7 @@ CONTAINS
                      UST,      HFX,      QFX,   TSK,                  &
                      PSFC,     EP1,      G,                           &
                      ROVCP,    RD,       CPD,                         &
-                     PBLH,     KPBL2D,   EXCH_H, EXCH_M, REGIME,      &
+                     PBLH,     KPBL2D,   EXCH_H, REGIME,              &
                      GZ1OZ0,   WSPD,     PSIM, MUT, RMOL,             &
                      RUBLTEN,  RVBLTEN,  RTHBLTEN,                    &
                      RQVBLTEN, RQCBLTEN, RQIBLTEN,                    &
@@ -50,11 +50,6 @@ CONTAINS
 !     JP        3/2013   - WRFChem version. Mixing of chemical species are added
 !     HF        5/2016   - MPAS version  
 !     JP        8/2017   - Z-coord version from MPAS version for hybrid coords  
-!     JP        10/2020  - Fixed a bug where KSRC is now an array dimensioned ( its:ite )
-!                        - Modified the PBL height algorithm for stable conditions so
-!                          that the Richardson number is computed using windspeed in layer
-!                          k rather than wind speed difference between layer k and ksrc
-!                        - Added EXCH_M to argument list 
 !
 !**********************************************************************
 !   ARGUMENT LIST:
@@ -150,7 +145,7 @@ CONTAINS
                                                         RQCBLTEN, RQIBLTEN
 
    real,     dimension( ims:ime, kms:kme, jms:jme ),                         &
-             intent(inout)   ::                         exch_h,exch_m
+             intent(inout)   ::                         exch_h
 
     INTEGER, DIMENSION( ims:ime, jms:jme ), INTENT(OUT  ) ::  KPBL2D
  
@@ -174,6 +169,18 @@ CONTAINS
     REAL,    DIMENSION( ims:ime, kdvel, ndvel ) :: VD2D
 #endif
    
+
+
+!**************************************
+! dry air density - Hosein, June 2015
+!     do j = jts,jte
+!     do k = kts,kte
+!     do i = its,ite
+!       RR3DA(i,k,j) = RR3D(i,k,j) * (1.0 + 1.609*QV3D(i,k,j)) / (1.0 + QV3D(i,k,j))
+!     enddo
+!     enddo
+!     enddo
+!***************************************
    RDT = 1.0 / DTPBL
 
 !==================================================
@@ -216,7 +223,6 @@ CONTAINS
               ,psfcpa=psfc(ims,j),ust=ust(ims,j)                   &
               ,pbl=pblh(ims,j)                                     &
               ,exch_hx=exch_h(ims,kms,j)                           &
-              ,exch_mx=exch_m(ims,kms,j)                           &
               ,regime=regime(ims,j),psim=psim(ims,j)               &
               ,hfx=hfx(ims,j),qfx=qfx(ims,j)                       &
               ,tg=tsk(ims,j),gz1oz0=gz1oz0(ims,j)                  &
@@ -235,6 +241,14 @@ CONTAINS
 #endif
    ENDDO
 
+
+!   write(46,*) pblh (7221,1)
+!   write(56,*) 'rublten'  , rublten (1000,6,1)
+!   write(56,*) 'rvblten'  , rvblten (1000,6,1)
+!   write(56,*) 'rthblten' , rthblten(1000,6,1)
+!   write(56,*) '==========='
+
+
    END SUBROUTINE ACMPBL
 !-----------------------------------------------------------------------
 !-----------------------------------------------------------------------
@@ -250,7 +264,7 @@ CONTAINS
 #endif
               ,dzf,densx,utnp,vtnp,ttnp,qvtnp,qctnp,qitnp   &
               ,cpd,g,rovcp,rd,rdt,psfcpa,ust                &
-              ,pbl,exch_hx,exch_mx,regime,psim                      &
+              ,pbl,exch_hx,regime,psim                      &
               ,hfx,qfx,tg,gz1oz0,wspd ,klpbl                &
               ,mut, rmol                                    &
               ,ep1,karman                                   &
@@ -284,7 +298,7 @@ CONTAINS
       real,     dimension( ims:ime ), intent(in)      ::   hfx, qfx
       real,     dimension( ims:ime ), intent(in)      ::   mut
       real,     dimension( ims:ime, kms:kme ),                    &
-                intent(inout)                         ::   exch_hx,exch_mx
+                intent(inout)                         ::   exch_hx
 !... Integer
       INTEGER, DIMENSION( ims:ime ),       INTENT(OUT):: KLPBL
       INTEGER,  INTENT(IN)      ::      XTIME
@@ -301,7 +315,7 @@ CONTAINS
 !--Local 
       INTEGER I, K     
       INTEGER :: KPBLHT
-      INTEGER, DIMENSION( its:ite ) :: KPBLH, NOCONV, KSRC
+      INTEGER, DIMENSION( its:ite ) :: KPBLH, NOCONV
 
 !... Real
       REAL    ::  TVCON, WSS, TCONV, TH1, TOG, DTMP, WSSQ
@@ -319,7 +333,7 @@ CONTAINS
       REAL    ::  A,TST12,RL,ZFUNC,DENSF
 
 !... Integer
-      INTEGER :: KL, jtf, ktf, itf, KMIX
+      INTEGER :: KL, jtf, ktf, itf, KMIX, KSRC
       character*512 :: message
 !-----initialize vertical tendencies and
 
@@ -379,6 +393,7 @@ CONTAINS
        DO I = its,ite
          ZF(I,K) = DZF(I,K) + ZF(I,K-1)
          ZA(I,K) = 0.5 * (ZF(I,K) + ZF(I,K-1))
+!         write(0,*) i , k , zf, za 
          DZH(I,K) = ZF(I,K) - ZF(I,K-1)
          DZHI(I,K)= 1./DZH(I,K)
        ENDDO
@@ -404,38 +419,36 @@ CONTAINS
 !...  COMPUTE PBL WHERE RICHARDSON NUMBER = RIC (0.25) HOLTSLAG ET AL 1990  
      DO 100 I = its,ite
        DO K = 1,kte
-         RIB(I,K) = 0.0
-         KSRC(I) = K
+         KSRC = K
          IF (ZF(I,K).gt.30.0) GO TO 69
        ENDDO
-69     CONTINUE 
-
+69     CONTINUE
        TH1 = 0.0
        ZH1 = 0.0
        UH1 = 0.0
        VH1 = 0.0
-       DO K = 1,KSRC(I)
+       DO K = 1,KSRC
          TH1 = TH1 + THETAV(I,K)  
          ZH1 = ZH1 + ZA(I,K)
          UH1 = UH1 + US(I,K)
          VH1 = VH1 + VS(I,K)
        ENDDO  
-       TH1 = TH1/KSRC(I)
-       ZH1 = ZH1/KSRC(I)
-       UH1 = UH1/KSRC(I)
-       VH1 = VH1/KSRC(I)
+       TH1 = TH1/KSRC
+       ZH1 = ZH1/KSRC
+       UH1 = UH1/KSRC
+       VH1 = VH1/KSRC
        IF(MOL(I).LT.0.0 .AND. XTIME.GT.1) then
          WSS   = (UST(I) ** 3 + 0.6 * WST(I) ** 3) ** 0.33333
          TCONV = -8.5 * UST(I) * TSTV(I) / WSS
          TH1   = TH1 + TCONV
        ENDIF
 
-99     KMIX = KSRC(I)
-       DO K = KSRC(I),kte
+99     KMIX = KSRC
+       DO K = KSRC,kte
          DTMP   = THETAV(I,K) - TH1
          IF (DTMP.LT.0.0) KMIX = K
        ENDDO
-       IF(KMIX.GT.KSRC(I)) THEN
+       IF(KMIX.GT.KSRC) THEN
          FINTT = (TH1 - THETAV(I,KMIX)) / (THETAV(I,KMIX+1)               &
                - THETAV(I,KMIX))
          ZMIX = FINTT * (ZA(I,KMIX+1)-ZA(I,KMIX)) + ZA(I,KMIX)
@@ -451,10 +464,7 @@ CONTAINS
          TOG = 0.5 * (THETAV(I,K) + TH1) / G
          WSSQ = (US(I,K)-UMIX)**2                                     &
               + (VS(I,K)-VMIX)**2
-         IF (KMIX .EQ. KSRC(I)) THEN
-               WSSQ = US(I,K)**2 + VS(I,K)**2
-               WSSQ = WSSQ + 100.*UST(I)*UST(I) 
-         ENDIF
+         IF (KMIX == KSRC) WSSQ = WSSQ + 100.*UST(I)*UST(I) 
          WSSQ = MAX( WSSQ, 0.1 )
          RIB(I,K) = ABS(ZA(I,K)-ZMIX) * DTMP / (TOG * WSSQ)
          IF (RIB(I,K) .GE. RIC) GO TO 201
@@ -476,7 +486,7 @@ CONTAINS
 100  CONTINUE
 
      DO I = its,ite
-       IF (KPBLH(I) .GT. KSRC(I)) THEN
+       IF (KPBLH(I) .GT. KSRC) THEN
 !---------INTERPOLATE BETWEEN LEVELS -- jp 7/93
          FINT(I) = (RIC - RIB(I,KPBLH(I)-1)) / (RIB(I,KPBLH(I)) -       &
                     RIB(I,KPBLH(I)-1))
@@ -491,8 +501,8 @@ CONTAINS
                      ZF(I,KPBLHT-1)
          KLPBL(I) = KPBLHT
        ELSE
-         KLPBL(I) = KSRC(I)
-         PBL(I)    = ZA(I,KSRC(I))                                                  
+         KLPBL(I) = KSRC
+         PBL(I)    = ZA(I,KSRC)                                                  
        ENDIF
 
      ENDDO
@@ -539,7 +549,6 @@ CONTAINS
      DO K = kts, kte-1
        DO I = its, ite
          exch_hx(I,K) = EDDYZ(I,K)
-         exch_mx(I,K) = EDDYZM(I,K)
        ENDDO
      ENDDO
 
@@ -714,6 +723,8 @@ CONTAINS
       REAL, PARAMETER :: P      = 2.0   ! ZFUNC exponent
       REAL, PARAMETER :: EDYZ0  = 0.01  ! New Min Kz
       REAL, PARAMETER :: PR     = 0.8   ! Prandtl #
+!      REAL, PARAMETER :: EDYZ0  = 0.1
+!--   IMVDIF      imvdif=1 for moist adiabat vertical diffusion
       INTEGER, PARAMETER :: imvdif = 1
 !
       ILX = ite 
@@ -780,6 +791,12 @@ CONTAINS
           SQL = (ZK * RLAM / (RLAM + ZK)) ** 2
             
           IF (RI .GE. 0.0) THEN
+!	          IF (ZF(I,K).LT.PBL(I).AND.ZOVL.GT.0.0) THEN
+!	            FH = MAX((1.-ZF(I,K)/PBL(I))**2,0.01) * PHIH **(-2)
+!                  SQL = ZK ** 2
+!	          ELSE
+!	            FH = (MAX(1.-RI/RC,0.01))**2
+!	          ENDIF
             FH=1./(1.+10.*RI+50.*RI**2+5000.*RI**4)+0.0012  !pleim5
             FM= PR*FH + 0.00104
 
@@ -804,7 +821,7 @@ CONTAINS
       ENDDO               ! for k loop
 !
       DO I = its,ILX
-        EDDYZ(I,KL) = 0.0
+        EDDYZ(I,KL) = 0.0 ! EDDYZ(I,KLM) -- changed jp 3/08
         EDDYZM(I,KL) = 0.0
       ENDDO
 
@@ -922,7 +939,7 @@ CONTAINS
       REAL, DIMENSION( kts:kte, its:ite) :: MBARKS, MDWN
       REAL, DIMENSION( kts:kte )         :: XPLUS, XMINUS
       REAL  DELC
-      REAL, DIMENSION( kts:kte )                :: AI, BI, CI, EI
+      REAL, DIMENSION( kts:kte )                :: AI, BI, CI, EI !, Y
       REAL, ALLOCATABLE, DIMENSION( : , : )     :: DI, UI    
       REAL, ALLOCATABLE, DIMENSION( : , : )     :: FS
       REAL, ALLOCATABLE, DIMENSION( : , : , : ) :: VCI

@@ -1273,7 +1273,6 @@ subroutine da_write_filtered_obs(it, grid, ob, iv, &
 
             ! get RH from Q & T    
             if (iv%gpsref(n)%q(k)%qc >= obs_qc_pointer .and.  &
-                iv%gpsref(n)%p(k)%qc >= obs_qc_pointer .and.  &
                 abs(iv%gpsref(n)%q(k)%error - missing_r) > 1. .and.  &
                 abs(ob%gpsref(n)%t(k)       - missing_r) > 1. .and.  &
                 abs(ob%gpsref(n)%p(k)       - missing_r) > 1.   ) then 

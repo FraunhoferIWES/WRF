@@ -1,8 +1,5 @@
-subroutine da_cv_to_vv (cv_size, rcv, mzs, nmzs, vv &
-#if (WRF_CHEM == 1)
-                        ,mzs_chem, vchem &
-#endif
-                        )
+subroutine da_cv_to_vv (cv_size, rcv, mzs, nmzs, vv)
+
    !---------------------------------------------------------------------------
    ! Purpose: Fill (local) vv arrays from 1D (local) cv array.
    !---------------------------------------------------------------------------
@@ -14,10 +11,6 @@ subroutine da_cv_to_vv (cv_size, rcv, mzs, nmzs, vv &
    integer,        intent(in)    :: nmzs        ! number of cv for mz
    integer,        intent(in)    :: mzs(nmzs)   ! Background error structure levels.
    type (vp_type), intent(inout) :: vv          ! Grdipt/EOF cv_array.
-#if (WRF_CHEM == 1)
-   integer, optional, intent(in)    :: mzs_chem(:)   ! chem Background error structure levels.
-   type (xchem_type), optional, intent(inout) :: vchem   ! Grdipt/EOF cv_array.
-#endif
 
    integer   :: is,ie       ! Local grid range in y coordinate.
    integer   :: js,je       ! Local grid range in x coordinate.
@@ -27,9 +20,6 @@ subroutine da_cv_to_vv (cv_size, rcv, mzs, nmzs, vv &
    integer   :: cv_s,cv_e   ! Starting and ending indices into CV array.
    integer   :: ijm         ! Size of interior of v1 through v5 arrays.
    integer   :: ijmn        ! Size of interior of alpha cv arrays.
-#if (WRF_CHEM == 1)
-   integer   :: ic, offset
-#endif
 
    if (trace_use) call da_trace_entry("da_cv_to_vv")
 
@@ -162,24 +152,6 @@ subroutine da_cv_to_vv (cv_size, rcv, mzs, nmzs, vv &
 !     vv % alpha(is:ie,js:je,1:mz,1:ne) = RESHAPE(rcv(cv_s:cv_e),(/ix, jy, mz, ne/))
       vv % alpha(its_int:ite_int,jts_int:jte_int,1:mz,1:ne) = RESHAPE(rcv(cv_s:cv_e),(/ix, jy, mz, ne/))
    end if
-
-#if (WRF_CHEM == 1)
-   if (present(mzs_chem) .and. present(vchem)) then
-      ix = ie-is+1
-      jy = je-js+1
-
-      if ( num_chem >= PARAM_FIRST_SCALAR ) then
-         do ic = PARAM_FIRST_SCALAR, num_chem
-            mz = mzs_chem(ic-1)
-            ijm = ix * jy * mz
-            cv_s = cv_e + 1
-            cv_e = cv_s + ijm - 1
-            vchem % chem_ic(is:ie,js:je,1:mz,ic) = RESHAPE(rcv(cv_s:cv_e),(/ix, jy, mz/))
-         end do
-      end if
-   end if
-
-#endif
 
    if (trace_use) call da_trace_exit("da_cv_to_vv")
 

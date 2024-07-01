@@ -15,8 +15,7 @@ CONTAINS
   END SUBROUTINE init_module_scalar_tables
 END MODULE module_scalar_tables
 
-#ifdef WRF_CHEM
-#ifdef WRF_KPP
+#if( WRF_CHEM == 1 && WRF_KPP == 1 )
 MODULE module_irr_diag
 
    INTEGER, parameter :: max_eqn = 1200
@@ -45,7 +44,6 @@ CONTAINS
   END SUBROUTINE init_module_irr_diag
 
 END MODULE module_irr_diag
-#endif
 #endif
 
 MODULE module_configure

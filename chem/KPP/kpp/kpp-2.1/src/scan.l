@@ -30,6 +30,7 @@
 ******************************************************************************/
 
 
+
 %s CMD_STATE INC_STATE MOD_STATE INT_STATE 
 %s PRM_STATE DSP_STATE SSP_STATE INI_STATE EQN_STATE EQNTAG_STATE 
 %s RATE_STATE LMP_STATE CR_IGNORE SC_IGNORE ATM_STATE LKT_STATE INL_STATE 
@@ -42,6 +43,7 @@
   #include "scan.h" 
   #include "y.tab.h"
 
+  void*malloc() ;
   void Include ( char * filename );
   int EndInclude();
 

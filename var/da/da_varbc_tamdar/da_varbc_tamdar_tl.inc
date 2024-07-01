@@ -14,7 +14,6 @@
    type (y_type), intent(inout)  :: y               ! y = h (xa)
 
    integer                       :: isn,ivar,iflt,ipred,iobs,iphase
-   integer                       :: npred
    real                          :: delta_bc
 
    real, allocatable             :: varbc_param_tl(:)
@@ -22,8 +21,7 @@
 
    if (trace_use) call da_trace_entry("da_varbc_tamdar_tl")
 
-   npred = iv%varbc_tamdar%npred
-   allocate( varbc_param_tl(npred) )
+   allocate( varbc_param_tl(iv%varbc_tamdar%npred) )
 
    do iflt = 1, iv%varbc_tamdar%nair
       do iphase = 1, iv%varbc_tamdar%nphase
@@ -32,14 +30,14 @@
 
              varbc_param_tl(:) = 0.0
 
-             do ipred = 1, npred
+             do ipred = 1, iv%varbc_tamdar%npred
                 varbc_param_tl(ipred) = &
-	                   SUM( cv(iv%varbc_tamdar%index(1:npred,iphase,iflt)) * &
-                                iv%varbc_tamdar%vtox(ipred,1:npred,iphase,iflt) )
+	                   SUM( cv(iv%varbc_tamdar%index(ipred,iphase,iflt)) * &
+                                iv%varbc_tamdar%vtox(ipred,1:iv%varbc_tamdar%npred,iphase,iflt) )
              end do	
 
-             delta_bc = SUM( varbc_param_tl(1:npred)* &
-                             iv%varbc_tamdar%pred(1:npred,iphase,iflt) )
+             delta_bc = SUM( varbc_param_tl(1:iv%varbc_tamdar%npred)* &
+                             iv%varbc_tamdar%pred(1:iv%varbc_tamdar%npred,iphase,iflt) )
 
              do iobs = 1, iv%varbc_tamdar%nobs(iphase,iflt)
                 isn = iv%varbc_tamdar%obs_sn(iobs,iphase,iflt)

@@ -75,7 +75,6 @@
                gmt, julday, t_phy, moist, aerwrf,                         &
                p8w, t8w, p_phy, chem, rho_phy,                            &
                dz8w, xlat, xlong, z, z_at_w, gd_cloud, gd_cloud2,         &
-               bl_cld,bl_cld2,                                            &
                tauaer1,tauaer2,tauaer3,tauaer4,                           &
                gaer1,gaer2,gaer3,gaer4,                                   &
                waer1,waer2,waer3,waer4,                                   &
@@ -87,7 +86,6 @@
                ph_glyald,ph_mek,ph_gly,                                   &
                pm2_5_dry,pm2_5_water,uvrad,                               &
                dt_cld,af_dir,af_dn,af_up,par,erythema,                    &
-               o3_gfs_du,                                                 &
                ids,ide, jds,jde, kds,kde,                                 &
                ims,ime, jms,jme, kms,kme,                                 &
                its,ite, jts,jte, kts,kte )
@@ -119,7 +117,7 @@
                pm2_5_dry,pm2_5_water
    REAL, DIMENSION( ims:ime, kms:kme, jms:jme ),                   &
          INTENT(INOUT ) ::                                         &
-               gd_cloud,gd_cloud2,bl_cld,bl_cld2
+               gd_cloud,gd_cloud2
    REAL, DIMENSION( ims:ime, kms:kme, jms:jme ),              &
          INTENT(IN   ) :: tauaer1, tauaer2, tauaer3, tauaer4, &
                           waer1, waer2, waer3, waer4,         &
@@ -156,9 +154,6 @@
    REAL,  DIMENSION( ims:ime , jms:jme )                   ,    &     
           INTENT(INOUT   ) ::                        uvrad
    REAL,     INTENT(IN   ) ::                        gmt
-
-   REAL, DIMENSION( ims:ime, jme:jme ),                         &
-         OPTIONAL,INTENT(IN ) ::                    o3_gfs_du
 
    TYPE(grid_config_rec_type),  INTENT(IN   )    :: config_flags
 
@@ -441,24 +436,13 @@ has_daylight : &
                                   moist(i,kts:kte,j,p_qc), moist(i,kts:kte,j,p_qi), &
                                   moist(i,kts:kte,j,p_qs), kts, kte )
            elseif( config_flags%pht_cldfrc_opt == 2 ) then
-             if( config_flags%cu_diag == 1 ) then 
-                 if ( config_flags%phot_blcld .and. config_flags%icloud_bl == 1 ) then
-                    call cldfrac_fractional( cldfrac(kts:kte), &
-                                        moist(i,kts:kte,j,p_qv), &
-                                        moist(i,kts:kte,j,p_qc) + gd_cloud(i,kts:kte,j)  + &
-                                        bl_cld(i,kts:kte,j),  &
-                                        moist(i,kts:kte,j,p_qi) + gd_cloud2(i,kts:kte,j) + &
-                                        bl_cld2(i,kts:kte,j),  &
-                                        moist(i,kts:kte,j,p_qs), &
-                                        p_phy(i,kts:kte,j), t_phy(i,kts:kte,j), kts, kte )
-                 else
-                    call cldfrac_fractional( cldfrac(kts:kte), &
+             if( config_flags%cu_diag == 1 ) then
+               call cldfrac_fractional( cldfrac(kts:kte), &
                                         moist(i,kts:kte,j,p_qv), &
                                         moist(i,kts:kte,j,p_qc) + gd_cloud(i,kts:kte,j),  &
                                         moist(i,kts:kte,j,p_qi) + gd_cloud2(i,kts:kte,j), &
                                         moist(i,kts:kte,j,p_qs), &
                                         p_phy(i,kts:kte,j), t_phy(i,kts:kte,j), kts, kte )
-                 endif
              else
                call cldfrac_fractional( cldfrac(kts:kte), &
                                         moist(i,kts:kte,j,p_qv), moist(i,kts:kte,j,p_qc), &
@@ -529,14 +513,7 @@ has_daylight : &
          qll(:)            = 0.
          qll(kts:kte)      = moist(i,kts:kte,j,p_qc) + moist(i,kts:kte,j,p_qi)
          if( config_flags%cu_diag == 1 ) then
-           if ( config_flags%phot_blcld .and. config_flags%icloud_bl == 1 ) then
-              qll(kts:kte) = qll(kts:kte) + gd_cloud(i,kts:kte,j)  + &
-                                            gd_cloud2(i,kts:kte,j) + &
-                                            bl_cld(i,kts:kte,j)    + &
-                                            bl_cld2(i,kts:kte,j)
-           else
-             qll(kts:kte) = qll(kts:kte) + gd_cloud(i,kts:kte,j) + gd_cloud2(i,kts:kte,j)
-           endif
+           qll(kts:kte) = qll(kts:kte) + gd_cloud(i,kts:kte,j) + gd_cloud2(i,kts:kte,j)
          endif
          qll(kts:kte) = 1.e3*rhoa(kts:kte)*qll(kts:kte)
          where( qll(kts:kte) < 1.e-5 )
@@ -574,9 +551,6 @@ has_daylight : &
          endif
          if( config_flags%scale_o3_to_grnd_exo_coldens ) then
            dobsi = real( o3_exo_col_at_grnd(i,j),4 )/2.687e16
-         endif
-         if (config_flags%scale_o3_to_gfs_tot ) then
-           dobsi = o3_gfs_du(i,j)
          endif
 
          so2col(:) = 0.

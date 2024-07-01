@@ -39,14 +39,14 @@ int   in_comment, got_it;
     if (!dir) {
 	fprintf(stderr, "WARNING from gen_kpp: Cannot read directory: %s \n", kpp_dirname);
 	perror("");
-	return(0); // return;
+	return;
     }
 
 
     /* loop through sub directories in KPP directory */
 
  while ((entry = readdir(dir))) {
-   if ( strlen(entry->d_name) > 0 ) {
+   if (entry->d_name ) {
 
 	 if ( strcmp(entry->d_name, ".") == 0) 
           continue;

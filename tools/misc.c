@@ -6,8 +6,6 @@
 # define index(X,Y) strchr(X,Y)
 #else
 # include <strings.h>
-# include <unistd.h>
-# include <ctype.h>
 #endif
 
 #include "protos.h"

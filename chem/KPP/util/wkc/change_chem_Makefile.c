@@ -1,6 +1,4 @@
 #include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
 
 
 #include "protos.h"
@@ -10,7 +8,7 @@
 
 
 
-void
+int
 change_chem_Makefile (   )
 {
 knode_t * p1, * p2, * pm1;
@@ -47,7 +45,7 @@ knode_t * p1, * p2, * pm1;
    while ( fgets ( inln , NAMELEN , ch_Makefile ) != NULL ){
 
      /* printf("%s ", inln ); */ 
-	  fprintf(t_Makefile, "%s", inln);
+	  fprintf(t_Makefile, inln);
 
 	  /* if ( strncmp(inln, "MODULES",6) == 0){  */
 

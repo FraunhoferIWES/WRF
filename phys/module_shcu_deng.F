@@ -64,10 +64,8 @@ CONTAINS
    INTEGER,      DIMENSION( ims:ime , jms:jme ),                 &
                  INTENT(INOUT) :: ltopb, kdcldtop, kdcldbas
    REAL,         DIMENSION( ims:ime , kms:kme , jms:jme )         , &
-                 INTENT(INOUT) :: W0AVG, TKEAVG,                    &
+                 INTENT(INOUT) :: W0AVG, TKEAVG, QC,                &
                                   cldareaa, cldareab, cldliqa, cldliqb,  wub 
-   REAL,         DIMENSION( ims:ime , kms:kme , jms:jme )         , &
-                 INTENT(IN   ) :: QC
    REAL,         DIMENSION( ims:ime , kms:kme , jms:jme )         , &
                  INTENT(  OUT) :: ca_rad, cw_rad, cldfra_sh
    REAL,         DIMENSION( ims:ime , kms:kme , jms:jme ),           &
@@ -257,7 +255,8 @@ CONTAINS
 
      CA_RAD(I,K,J)=(1.0-CLDAREAA(I,K,J))*CS+CLDAREAA(I,K,J)
      CLDFRA_SH(I,K,J)= CA_RAD(I,K,J)
-     CW_RAD(I,K,J)=CLDLIQA(I,K,J)*CLDAREAA(I,K,J)
+!    CW_RAD(I,K,J)=CLDLIQA(I,K,J)+QC(I,K,J)
+     CW_RAD(I,K,J)=CLDLIQA(I,K,J)*CLDAREAA(I,K,J) + QC(I,K,J)
   ENDDO
   ENDDO
   ENDDO
@@ -283,7 +282,7 @@ CONTAINS
                W0AVG1D(k) = W0AVG(i,k,j)
                tke1d(k)  = tkeavg(i,k,j)
                RHO1D(K) =rho(I,K,J)
-               QV1D(K)=MAX(QV(I,K,J),1.E-12)
+               QV1D(K)=QV(I,K,J)
                RH1D(K)=RH(I,K,J)
 #ifdef DENG_SHCU1D
                ca_rad1d(k) = ca_rad(i,k,j)
@@ -415,9 +414,12 @@ CONTAINS
       ENDIF
 
       IF(CLDDPTHB(I,J) .LE. 0.0) THEN   ! No active updraft
+        IF( CLDAREAB(I,K,J) .LE. 1.0e-3 .OR. CLDLIQB(I,K,J) .LE. 1.0e-17 ) THEN
+  !        QC(I,K,J)=QC(I,K,J)+CLDAREAB(I,K,J)*CLDLIQB(I,K,J)
           RQCSHTEN(I,K,J)=RQCSHTEN(I,K,J)+CLDAREAB(I,K,J)*CLDLIQB(I,K,J)/DT
           CLDAREAB(I,K,J) = 0.0
           CLDLIQB(I,K,J) = 0.0
+        ENDIF
       ENDIF
     ENDDO
     ENDDO
@@ -677,8 +679,8 @@ CONTAINS
       DCLDTOP(I,J)=0.0
       DCLDBASE(I,J)=0.0
       CLDBMFLX(I,J)=0.0
-#endif
       RADIUSC(I,J)=0.0
+#endif
 !
 !...INPUT A VERTICAL SOUNDING ... NOTE THAT MODEL LAYERS ARE NUMBERED FROM THE
 !...BOTTOM-UP IN THE SHALLOW CONVECTION SCHEME...
@@ -1361,7 +1363,7 @@ CONTAINS
 ! WHERE LTOP1 IS THE KAIN-FRITSCH UPDRAFT TOP AND LTOP2 IS THE HEIGHT CALCULATED
 ! USING THE EQUATION: CTP2=CLDTOPB(I,J)+0.2*WUMAX*DT2/2.0
 !
-      LTOP1=MIN(NK,KLM)
+      LTOP1=NK
       CTP1=Z0(LTOP1)
 
       WUMAX=WU(1)
@@ -2097,7 +2099,6 @@ CONTAINS
 !
       IF(CAPEI(I,J) .LT. 100.0) THEN    ! averaging KF number of clouds
         NT = NINT(15.0*60.0/(0.5*DT))-1 ! for 15 min.
-        NT = MIN(NT, 100)
       ELSE
         NT = 0
       ENDIF
@@ -2798,7 +2799,7 @@ CONTAINS
 !
 ! CALCULATE THE CONVECTIVE RAINFALL
 !
-        RAINSHV(I,J)=.5*DT2*PPTFLX/DXSQ
+        RAINSHV(I,J)=.1*.5*DT2*PPTFLX/DXSQ
 
     IF ( wrf_dm_on_monitor()) THEN
       CALL get_wrf_debug_level( dbg_level )
@@ -4477,7 +4478,7 @@ CONTAINS
        IF(IPTB.GE.220 .OR. IPTB.LE.1 .OR. ITHTB.GE.250 .OR. ITHTB.LE.1)THEN
          write(98,'(a,6i5,2f9.2,i3)')'*** OUT OF BOUNDS ***', ktau,i,j,nk,IPTB, ITHTB, &
                     p/100.0, thes, tracker
-         flush(98)
+         call flush(98)
        ENDIF
 !
       t00=ttab(ithtb  ,iptb  )
@@ -4795,7 +4796,7 @@ CONTAINS
       ithtb=int(tth)+1
        IF(IPTB.GE.220 .OR. IPTB.LE.1 .OR. ITHTB.GE.250 .OR. ITHTB.LE.1)THEN
          write(97,'(a,6i5,2f9.2)')'*** OUT OF BOUNDS ***', ktau,i,j,nk,IPTB, ITHTB, p/100., thes
-         flush(97)
+         call flush(97)
        ENDIF
 !
       t00=ttab(ithtb  ,iptb  )

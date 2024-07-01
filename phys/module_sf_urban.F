@@ -9,8 +9,6 @@ use module_wrf_error
 #define WRITE_MESSAGE(M) call wrf_message( M )
 #endif
 
-USE module_model_constants, ONLY :  piconst
-
 !===============================================================================
 !     Single-Layer Urban Canopy Model for WRF Noah-LSM
 !     Original Version: 2002/11/06 by Hiroyuki Kusaka
@@ -49,11 +47,6 @@ USE module_model_constants, ONLY :  piconst
    REAL, ALLOCATABLE, DIMENSION(:) :: TARGHUM_TBL
    REAL, ALLOCATABLE, DIMENSION(:) :: GAPHUM_TBL
    REAL, ALLOCATABLE, DIMENSION(:) :: PERFLO_TBL
-   REAL, ALLOCATABLE, DIMENSION(:) :: PV_FRAC_ROOF_TBL !GRZ
-   REAL, ALLOCATABLE, DIMENSION(:) :: GR_FRAC_ROOF_TBL !GRZ
-   INTEGER :: GR_FLAG_TBL !GRZ
-   INTEGER :: GR_TYPE_TBL !GRZ
-   REAL, DIMENSION(1:24)           :: IRHO_TBL
    REAL, ALLOCATABLE, DIMENSION(:) :: HSESF_TBL
 
    REAL, ALLOCATABLE, DIMENSION(:) :: CAPR_TBL, CAPB_TBL, CAPG_TBL
@@ -90,7 +83,6 @@ USE module_model_constants, ONLY :  piconst
    INTEGER                         :: IMP_SCHEME, IRI_SCHEME
    INTEGER                         :: alhoption       ! anthropogenic latent heat option
    INTEGER                         :: groption        ! anthropogenic latent heat option
-   LOGICAL                         :: distributed_aerodynamics_option
    REAL                            :: fgr             ! green roof fraction
    REAL                            :: oasis           ! urban oasis parameter
    REAL, DIMENSION(1:4)            :: DZGR            ! Layer depth of green roof 
@@ -319,8 +311,7 @@ USE module_model_constants, ONLY :  piconst
                     U10,V10,TH2,Q2,UST,mh_urb,stdh_urb,lf_urb,        & ! O 
                     lp_urb,hgt_urb,frc_urb,lb_urb,zo_check,           & ! O
                     CMCR,TGR,TGRL,SMR,CMGR_URB,CHGR_URB,jmonth,       & ! H
-                    DRELR,DRELB,DRELG,FLXHUMR,FLXHUMB,FLXHUMG,        &
-                    lf_urb_s, z0_urb, vegfrac_in)
+                    DRELR,DRELB,DRELG,FLXHUMR,FLXHUMB,FLXHUMG)
 
    IMPLICIT NONE
 
@@ -400,13 +391,6 @@ USE module_model_constants, ONLY :  piconst
    REAL, INTENT(INOUT) :: lb_urb   ! building surface to plan area ratio [-]
    REAL, INTENT(INOUT), DIMENSION(4) :: lf_urb   ! frontal area index [-]
    REAL, INTENT(INOUT) :: zo_check  ! check for printing ZOC
-
-!-------------------------------------------------------------------------------
-! I: Distributed aerodynamics parameters
-!-------------------------------------------------------------------------------
-   REAL, INTENT(IN) :: lf_urb_s ! frontal area index [-]
-   REAL, INTENT(IN) :: z0_urb   ! roughness length [m]
-   REAL, INTENT(IN) :: vegfrac_in  ! vegetation fraction (0 to 1) [-]
 
 !-------------------------------------------------------------------------------
 ! O: output variables from Urban to LSM 
@@ -555,12 +539,10 @@ USE module_model_constants, ONLY :  piconst
    REAL :: PSIX, PSIT, PSIX2, PSIT2, PSIX10, PSIT10
 
    REAL :: TRP, TBP, TGP, TCP, QCP, TST, QST
-   REAL :: TSP, CHS_LOCAL, CHS2_LOCAL
 
    REAL :: WDR,HGT2,BW,DHGT
    REAL, parameter :: VonK = 0.4
    REAL :: lambda_f,alpha_macd,beta_macd,lambda_fr
-   REAL :: lambda_p, vegfrac
 
    INTEGER :: iteration, K, NUDAPT 
    INTEGER :: tloc, tloc2, Kalh
@@ -608,14 +590,6 @@ USE module_model_constants, ONLY :  piconst
    integer,parameter ::  IMPB  = 2      
    integer,parameter ::  IMPG  = 3    
 
-   SHADOW = .false.
-!   SHADOW = .true.
-
-   IF (distributed_aerodynamics_option .and. groption == 1) THEN
-     FATAL_ERROR("slucm_distributed_drag is not compatible with groption")
-   END IF
-
-
 !-------------------------------------------------------------------------------
 ! Set parameters
 !-------------------------------------------------------------------------------
@@ -647,7 +621,7 @@ USE module_model_constants, ONLY :  piconst
 
 ! Glotfelty, 2012/07/05, NUDAPT Modification
 
- if (mh_urb.gt.0.0 .and. .not. distributed_aerodynamics_option) THEN
+ if(mh_urb.gt.0.0)THEN 
   !write(mesg,*) 'Mean Height NUDAPT',mh_urb
   !WRITE_MESSAGE(mesg)
   !write(mesg,*) 'Mean Height Table',ZR
@@ -707,7 +681,7 @@ USE module_model_constants, ONLY :  piconst
    SIGMA_ZED = stdh_urb
 
  !Calculate Wind Direction and Assign Appropriae lf_urb
-   WDR = (180.0/PI)*ATAN2(U10,V10)
+   !WDR = (180.0/PI)*ATAN2(U10,V10)
    
    IF(WDR.ge.0.0.and.WDR.lt.22.5)THEN
      lambda_f = lf_urb(1)
@@ -719,7 +693,7 @@ USE module_model_constants, ONLY :  piconst
      lambda_f = lf_urb(1)
    ELSEIF(WDR.gt.22.5.and.WDR.le.67.5)THEN
      lambda_f = lf_urb(2)
-   ELSEIF(WDR.ge.-157.5.and.WDR.lt.-112.5)THEN
+   ELSEIF(WDR.ge.-67.5.and.WDR.lt.-22.5)THEN
      lambda_f = lf_urb(2)
    ELSEIF(WDR.gt.67.5.and.WDR.le.112.5)THEN
      lambda_f = lf_urb(3)
@@ -727,7 +701,7 @@ USE module_model_constants, ONLY :  piconst
      lambda_f = lf_urb(3)
    ELSEIF(WDR.gt.112.5.and.WDR.le.157.5)THEN
      lambda_f = lf_urb(4)
-   ELSEIF(WDR.ge.-67.5.and.WDR.lt.-22.5)THEN
+   ELSEIF(WDR.ge.-157.5.and.WDR.lt.-112.5)THEN
      lambda_f = lf_urb(4)
    ELSE
      lambda_f = lf_urb(1)
@@ -804,25 +778,6 @@ USE module_model_constants, ONLY :  piconst
    endif
    if(alhoption==1) ALH = ALH*alhdiuprf(tloc2)*alhseason(Kalh)
 
-   IF (distributed_aerodynamics_option) THEN
-     ZDC = 0.
-     IF (Z0_URB > MH_URB) THEN
-       FATAL_ERROR("Z0_URB is larger than MH_URB")
-     END IF
-     ZR = MAX(MH_URB, 3.5)
-     Z0C = MAX(Z0_URB, 0.1)
-     lambda_p = MAX(0.05, MIN(1.0, LP_URB))
-     lambda_f = MAX(0.05, MIN(1.0, LF_URB_S))
-
-     R = lambda_p
-     RW = 1 - R
-     SVF = kanda_kawai_svf(lambda_p, lambda_f)
-
-     vegfrac = MIN(0.9, MAX(0.1, vegfrac_in))
-
-     HGT = lambda_f
-   END IF
-
    IF( ZDC+Z0C+2. >= ZA) THEN
     FATAL_ERROR("ZDC + Z0C + 2m is larger than the 1st WRF level - Stop in subroutine urban - change ZDC and Z0C" ) 
    END IF
@@ -857,8 +812,6 @@ USE module_model_constants, ONLY :  piconst
    TGP=TG
    TCP=TC
    QCP=QC
-
-   TSP = (TR * R + TB * W + TG * RW) / (R + RW + W)
 
 !===Yang,2014/10/08, urban hydrological variables for single layer UCM===
    FLXHUMRP = FLXHUMR
@@ -906,6 +859,9 @@ USE module_model_constants, ONLY :  piconst
 !-------------------------------------------------------------------------------
 ! Net Short Wave Radiation at roof, wall, and road
 !-------------------------------------------------------------------------------
+
+   SHADOW = .false.
+!   SHADOW = .true.
 
    IF (SSG > 0.0) THEN
 
@@ -1007,22 +963,9 @@ USE module_model_constants, ONLY :  piconst
   
    ! note that CHR_URB contains UA (=CHR_MOS*UA)
    RLMO_URB=0.0
-   IF (distributed_aerodynamics_option) THEN
-     T1VC = TSP* (1.0+ 0.61 * QA)
-     CALL SFCDIF_URB (ZA,Z0C,T1VC,TH2V,UA,AKANDA_URBAN,CMC_URB,CHC_URB,RLMO_URB,CDC,Z0HC,vegfrac)
-     CHC = CHC_URB / UA ! canopy bulk transfer coef.
-     ALPHAC = RHO * CP * CHC_URB
-     CHR = CHC * R / (R + W + RW) ! local bulk transfer coef for roof
-     CHB = CHC * W / (R + W + RW) ! local bulk transfer coef for building wall
-     CHG = CHC * RW / (R + W + RW) ! local bulk transfer coef for floor
-     ALPHAR = RHO * CP * CHR * UA
-     ALPHAB = RHO * CP * CHB * UA
-     ALPHAG = RHO * CP * CHG * UA
-   ELSE
    CALL SFCDIF_URB (ZA,Z0R,T1VR,TH2V,UA,AKANDA_URBAN,CMR_URB,CHR_URB,RLMO_URB,CDR)
    ALPHAR =  RHO*CP*CHR_URB
    CHR=ALPHAR/RHO/CP/UA
-   END IF
 
 ! Yang, 03/12/2014 -- LH for impervious roof surface  
    RAIN1 = RAIN * 0.001 /3600          ! CONVERT FROM mm/hr to m/s
@@ -1242,8 +1185,6 @@ ENDIF
    ! CALL mos(XXXC,ALPHAC,CDC,BHC,RIBC,Z,Z0C,UA,TA,TCP,RHO)
    ! Virtual temperatures needed by SFCDIF routine from Noah
 
-   IF (.not. distributed_aerodynamics_option) THEN
-
    T1VC = TCP* (1.0+ 0.61 * QA) 
    RLMO_URB=0.0
    CALL SFCDIF_URB(ZA,Z0C,T1VC,TH2V,UA,AKANDA_URBAN,CMC_URB,CHC_URB,RLMO_URB,CDC)
@@ -1272,8 +1213,6 @@ ENDIF
    CHC=ALPHAC/RHO/CP/UA
    CHB=ALPHAB/RHO/CP/UC
    CHG=ALPHAG/RHO/CP/UC
-
-   END IF
 
 !Yang 10/10/2013 -- LH from impervious wall and ground
  IF (IMP_SCHEME==1) then
@@ -1335,7 +1274,7 @@ ENDIF
        ES=6.11*EXP( (2.5*10.**6./461.51)*(TGP-273.15)/(273.15*TGP) ) 
        DESDT=(2.5*10.**6./461.51)*ES/(TGP**2.)
        QS0G=0.622*ES/(PS-0.378*ES)        
-       DQS0GDTG=DESDT*0.622*PS/((PS-0.378*ES)**2.) 
+       DQS0GDTG=DESDT*0.22*PS/((PS-0.378*ES)**2.) 
 
        RG1=EPSG*( RX*VFGS          &
        +EPSB*VFGW*SIG*TBP**4./60.  &
@@ -1353,7 +1292,7 @@ ENDIF
        RB2=EPSB*( (1.-EPSG)*VFWG*VFGS*RX                          &
        +(1.-EPSG)*EPSB*VFGW*VFWG*SIG*(TBP**4.)/60.                &
        +(1.-EPSB)*VFWS*(1.-2.*VFWS)*RX                            &
-       +(1.-EPSB)*VFWG*(1.-2.*VFWS)*SIG*EPSG*TGP**4./60.     &
+       +(1.-EPSB)*VFWG*(1.-2.*VFWS)*EPSG*SIG*EPSG*TGP**4./60.     &
        +EPSB*(1.-EPSB)*(1.-2.*VFWS)*(1.-2.*VFWS)*SIG*TBP**4./60. )
 
        RG=RG1+RG2
@@ -1375,23 +1314,6 @@ ENDIF
        DRGDTB=DRGDTB1+DRGDTB2
        DRGDTG=DRGDTG1+DRGDTG2
 
-       IF (distributed_aerodynamics_option) THEN
-         HB=RHO*CP*CHB*UA*(TBP-TA)*100.
-         HG=RHO*CP*CHG*UA*(TGP-TA)*100.
-
-         DHBDTB=RHO*CP*CHB*UA*100.
-         DHBDTG=0.
-         DHGDTG=RHO*CP*CHG*UA*100.
-         DHGDTB=0.
-
-         ELEB=RHO*EL*CHB*UA*BETB*(QS0B-QA)*100.
-         ELEG=RHO*EL*CHG*UA*BETG*(QS0G-QA)*100.
-
-         DELEBDTB=RHO*EL*CHB*UA*BETB*DQS0BDTB*100.
-         DELEBDTG=0.
-         DELEGDTG=RHO*EL*CHG*UA*BETG*DQS0GDTG*100.
-         DELEGDTB=0.
-       ELSE
        HB=RHO*CP*CHB*UC*(TBP-TCP)*100.
        HG=RHO*CP*CHG*UC*(TGP-TCP)*100.
 
@@ -1413,7 +1335,6 @@ ENDIF
        DELEBDTG=RHO*EL*CHB*UC*BETB*(0.-DQCDTG)*100.
        DELEGDTG=RHO*EL*CHG*UC*BETG*(DQS0GDTG-DQCDTG)*100.
        DELEGDTB=RHO*EL*CHG*UC*BETG*(0.-DQCDTB)*100.
-       ENDIF
 
        G0B=AKSB*(TBP-TBL(1))/(DZB(1)/2.)
        G0G=AKSG*(TGP-TGL(1))/(DZG(1)/2.)
@@ -1440,9 +1361,6 @@ ENDIF
        TBP = TB
        TGP = TG
 
-       IF (distributed_aerodynamics_option) THEN
-         DTC = 0.0
-       ELSE
        TC1=RW*ALPHAC+RW*ALPHAG+W*ALPHAB
        TC2=RW*ALPHAC*TA+RW*ALPHAG*TGP+W*ALPHAB*TBP
        TC=TC2/TC1
@@ -1454,7 +1372,6 @@ ENDIF
        DTC=TCP - TC
        TCP=TC
        QCP=QC
-       END IF
 
        IF( ABS(F) < 0.000001 .AND. ABS(DTB) < 0.000001 &
         .AND. ABS(GF) < 0.000001 .AND. ABS(DTG) < 0.000001 &
@@ -1494,7 +1411,7 @@ ENDIF
        RB2=EPSB*( (1.-EPSG)*VFWG*VFGS*RX                          &
        +(1.-EPSG)*EPSB*VFGW*VFWG*SIG*(TBP**4.)/60.                &
        +(1.-EPSB)*VFWS*(1.-2.*VFWS)*RX                            &
-       +(1.-EPSB)*VFWG*(1.-2.*VFWS)*SIG*EPSG*TGP**4./60.     &
+       +(1.-EPSB)*VFWG*(1.-2.*VFWS)*EPSG*SIG*EPSG*TGP**4./60.     &
        +EPSB*(1.-EPSB)*(1.-2.*VFWS)*(1.-2.*VFWS)*SIG*TBP**4./60. )
 
        RG=RG1+RG2
@@ -1562,11 +1479,7 @@ ENDIF
    else
      FLXHUM = ( R*FLXHUMR + W*FLXHUMB + RW*FLXHUMG )
    endif
-   IF (distributed_aerodynamics_option) THEN
-     FLXUV = CDC * UA * UA
-   ELSE
    FLXUV  = ( R*CDR + RW*CDC )*UA*UA
-   END IF
    FLXG =   ( R*G0R + W*G0B + RW*G0G )
    LNET =     R*RR + W*RB + RW*RG
  endif
@@ -1614,20 +1527,14 @@ ENDIF
 
    GZ1OZ0 = ALOG(Z/Z0)
    CD = 0.4**2./(ALOG(Z/Z0)-PSIM)**2.
-   CHS_LOCAL = 0.4 * UST / (ALOG(Z / Z0H) - PSIH)
 !
 !m   CH = 0.4**2./(ALOG(Z/Z0)-PSIM)/(ALOG(Z/Z0H)-PSIH)
 !m   CHS = 0.4*UST/(ALOG(Z/Z0H)-PSIH)
 !m   TS = TA + FLXTH/CH/UA    ! surface potential temp (flux temp)
 !m   QS = QA + FLXHUM/CH/UA   ! surface humidity
 !
-   IF (distributed_aerodynamics_option) THEN
-     TS = TA + FLXTH / (ALPHAC / (RHO * CP))  ! surface potential temp (flux temp)
-     QS = QA + FLXHUM / (ALPHAC / (RHO * CP)) ! surface humidity
-   ELSE
    TS = TA + FLXTH/CHS    ! surface potential temp (flux temp)
    QS = QA + FLXHUM/CHS   ! surface humidity
-   END IF
 
 !-------------------------------------------------------
 !  diagnostic  GRID AVERAGED  U10  V10  TH2  Q2 --> WRF
@@ -1677,14 +1584,9 @@ ENDIF
 !   TH2 = TS + (TA-TS)*(PSIT2/PSIT)   ! potential temp at 2 m [K]
 !  TH2 = TS + (TA-TS)*(PSIT2/PSIT)   ! Fei: this seems to be temp (not potential) at 2 m [K]
 !Fei: consistant with M-O theory
-   IF (distributed_aerodynamics_option) THEN
-     CHS2_LOCAL = 0.4 * UST / (ALOG(2. / Z0H) - PSIH2)
-     TH2 = TS + (TA - TS) * (CHS_LOCAL / CHS2_LOCAL)
-     Q2 = QS + (QA - QS) * (CHS_LOCAL / CHS2_LOCAL)
-   ELSE
    TH2 = TS + (TA-TS) *(CHS/CHS2) 
+
    Q2 = QS + (QA-QS)*(PSIT2/PSIT)    ! humidity at 2 m       [-]
-   END IF
 
 !   TS = (LW/SIG_SI/0.88)**0.25       ! Radiative temperature [K]
 
@@ -2040,7 +1942,7 @@ ENDIF
 !
 !===============================================================================
    SUBROUTINE urban_param_init(DZR,DZB,DZG,num_soil_layers, &
-                               sf_urban_physics,use_wudapt_lcz, slucm_distributed_drag)
+                               sf_urban_physics)
 !                              num_roof_layers,num_wall_layers,num_road_layers)
 
    IMPLICIT NONE
@@ -2054,8 +1956,6 @@ ENDIF
    REAL, DIMENSION(1:num_soil_layers), INTENT(INOUT) :: DZB
    REAL, DIMENSION(1:num_soil_layers), INTENT(INOUT) :: DZG
    INTEGER,                            INTENT(IN)    :: SF_URBAN_PHYSICS
-   INTEGER,                            INTENT(IN)    :: USE_WUDAPT_LCZ !AndreaLCZ
-   LOGICAL,                            INTENT(IN)    :: slucm_distributed_drag
 
    INTEGER :: LC, K
    INTEGER :: IOSTATUS, ALLOCATE_STATUS
@@ -2091,12 +1991,8 @@ ENDIF
    num_road_layers = num_soil_layers
 
 
-   ICATE=0  
+   ICATE=0
 
-   distributed_aerodynamics_option = slucm_distributed_drag
-
-   
-  if(USE_WUDAPT_LCZ.eq.0)then   !AndreaLCZ
    OPEN (UNIT=11,                &
          FILE='URBPARM.TBL', &
          ACCESS='SEQUENTIAL',    &
@@ -2105,24 +2001,9 @@ ENDIF
          POSITION='REWIND',      &
          IOSTAT=IOSTATUS)
 
-         IF (IOSTATUS > 0) THEN
-         FATAL_ERROR('Error opening URBPARM.TBL. Make sure URBPARM.TBL (found in run/) is linked to the running directory.')
-         ENDIF
-
- else
-   OPEN (UNIT=11,                &
-         FILE='URBPARM_LCZ.TBL', &
-         ACCESS='SEQUENTIAL',    &
-         STATUS='OLD',           &
-         ACTION='READ',          &
-         POSITION='REWIND',      &
-         IOSTAT=IOSTATUS)
-
-         IF (IOSTATUS > 0) THEN
-         FATAL_ERROR('Error opening URBPARM_LCZ.TBL. Make sure URBPARM_LCZ.TBL (found in run/) is linked to the running directory.')
-         ENDIF
- endif
- 
+   IF (IOSTATUS > 0) THEN
+   FATAL_ERROR('ERROR OPEN URBPARM.TBL')
+   ENDIF
 
    READLOOP : do 
       read(11,'(A512)', iostat=iostatus) string
@@ -2256,11 +2137,6 @@ ENDIF
             if(allocate_status /= 0) FATAL_ERROR('Error allocating PERFLO_TBL in urban_param_init')
             ALLOCATE( HSESF_TBL(ICATE), stat=allocate_status )
             if(allocate_status /= 0) FATAL_ERROR('Error allocating HSESF_TBL in urban_param_init')
-            ALLOCATE( PV_FRAC_ROOF_TBL(ICATE), stat=allocate_status )
-            if(allocate_status /= 0) FATAL_ERROR('Error allocating PV_FRAC_ROOF_TBL in urban_param_init')
-            ALLOCATE( GR_FRAC_ROOF_TBL(ICATE), stat=allocate_status )
-            if(allocate_status /= 0) FATAL_ERROR('Error allocating GR_FRAC_ROOF_TBL in urban_param_init')
-
          endif
          numdir_tbl = 0
          street_direction_tbl = -1.E36
@@ -2453,17 +2329,6 @@ ENDIF
          read(string(indx+1:),*) hsequip_tbl(1:24)
       else if (name == "HSEQUIP_SCALE_FACTOR") then
          read(string(indx+1:),*) hsesf_tbl(1:icate)
-      else if (name == "IRHO") then
-         read(string(indx+1:),*) IRHO_TBL(1:24)
-       else if ( name == "PV_FRAC_ROOF") then
-         read(string(indx+1:),*) pv_frac_roof_tbl(1:icate)
-     else if ( name == "GR_FRAC_ROOF") then
-         read(string(indx+1:),*) gr_frac_roof_tbl(1:icate)
-      else if (name == "GR_FLAG") then
-         read(string(indx+1:),*) gr_flag_tbl
-      else if (name == "GR_TYPE") then
-         read(string(indx+1:),*) gr_type_tbl
-
 !end BEP         
       else
          FATAL_ERROR('URBPARM.TBL: Unrecognized NAME = "'//trim(name)//'" in Subr URBAN_PARAM_INIT')
@@ -2555,8 +2420,11 @@ ENDIF
 !===========================================================================
    SUBROUTINE urban_var_init(ISURBAN, TSURFACE0_URB,TLAYER0_URB,TDEEP0_URB,IVGTYP,  & ! in
                              ims,ime,jms,jme,kms,kme,num_soil_layers,         & ! in
-                             LCZ_1,LCZ_2,LCZ_3,LCZ_4,LCZ_5,                &
-                             LCZ_6,LCZ_7,LCZ_8,LCZ_9,LCZ_10,LCZ_11,        & 
+!                             num_roof_layers,num_wall_layers,num_road_layers, & ! in
+!                              num_roof_layers,num_wall_layers,num_road_layers, & !urban
+                             LOW_DENSITY_RESIDENTIAL,                    &
+		             HIGH_DENSITY_RESIDENTIAL,                   &
+		             HIGH_INTENSITY_INDUSTRIAL,                    &
                              restart,sf_urban_physics,                     & !in
                              XXXR_URB2D,XXXB_URB2D,XXXG_URB2D,XXXC_URB2D,  & ! inout
                              TR_URB2D,TB_URB2D,TG_URB2D,TC_URB2D,QC_URB2D, & ! inout
@@ -2573,7 +2441,6 @@ ENDIF
                              urban_map_wd,                                 & ! in
                              urban_map_gbd,                                & ! in
                              urban_map_fbd,                                & ! in
-                             urban_map_zgrd,                                & ! in
                              num_urban_hi,                                 & ! in
                              TRB_URB4D,TW1_URB4D,TW2_URB4D,TGB_URB4D,      & ! inout
                              TLEV_URB3D,QLEV_URB3D,                        & ! inout
@@ -2583,11 +2450,6 @@ ENDIF
                              SFVENT_URB3D,LFVENT_URB3D,                    & ! inout
                              SFWIN1_URB3D,SFWIN2_URB3D,                    & ! inout
                              SFW1_URB3D,SFW2_URB3D,SFR_URB3D,SFG_URB3D,    & ! inout
-                             EP_PV_URB3D,T_PV_URB3D,                       & !GRZ
-                             TRV_URB4D,QR_URB4D,QGR_URB3D,TGR_URB3D,       & !GRZ
-                             DRAIN_URB4D,DRAINGR_URB3D,SFRV_URB3D,         & !GRZ
-                             LFRV_URB3D,DGR_URB3D,DG_URB3D,LFR_URB3D,LFG_URB3D,&!GRZ
-                             SMOIS_URB,                                    &
                              LP_URB2D,HI_URB2D,LB_URB2D,                   & ! inout
                              HGT_URB2D,MH_URB2D,STDH_URB2D,                & ! inout
                              LF_URB2D,                                     & ! inout
@@ -2598,11 +2460,11 @@ ENDIF
                              A_E_BEP,B_U_BEP,B_V_BEP,                      & ! inout multi-layer urban
                              B_T_BEP,B_Q_BEP,B_E_BEP,DLG_BEP,              & ! inout multi-layer urban
                              DL_U_BEP,SF_BEP,VL_BEP,                       & ! inout multi-layer urban
-                             FRC_URB2D, UTYPE_URB2D,USE_WUDAPT_LCZ)                         ! inout
+                             FRC_URB2D, UTYPE_URB2D)                         ! inout
    IMPLICIT NONE
 
-   INTEGER, INTENT(IN) :: ISURBAN, sf_urban_physics,use_wudapt_lcz
-   INTEGER, INTENT(IN) :: LCZ_1,LCZ_2,LCZ_3,LCZ_4,LCZ_5,LCZ_6,LCZ_7,LCZ_8,LCZ_9,LCZ_10,LCZ_11
+   INTEGER, INTENT(IN) :: ISURBAN, sf_urban_physics
+   INTEGER, INTENT(IN) :: LOW_DENSITY_RESIDENTIAL, HIGH_DENSITY_RESIDENTIAL, HIGH_INTENSITY_INDUSTRIAL
    INTEGER, INTENT(IN) :: ims,ime,jms,jme,kms,kme,num_soil_layers
    INTEGER, INTENT(IN) :: num_urban_ndm
    INTEGER, INTENT(IN) :: urban_map_zrd
@@ -2614,7 +2476,6 @@ ENDIF
    INTEGER, INTENT(IN) :: urban_map_wd
    INTEGER, INTENT(IN) :: urban_map_gbd
    INTEGER, INTENT(IN) :: urban_map_fbd
-   INTEGER, INTENT(IN) :: urban_map_zgrd
    INTEGER, INTENT(IN) :: num_urban_hi                                !multi-layer urban
 !   INTEGER, INTENT(IN) :: num_roof_layers, num_wall_layers, num_road_layers
 
@@ -2680,21 +2541,6 @@ ENDIF
    REAL, DIMENSION(ims:ime, 1:urban_map_zd , jms:jme), INTENT(INOUT) :: SFW2_URB3D
    REAL, DIMENSION(ims:ime, 1:urban_map_zdf, jms:jme), INTENT(INOUT) :: SFR_URB3D
    REAL, DIMENSION(ims:ime, 1:num_urban_ndm, jms:jme), INTENT(INOUT) :: SFG_URB3D
-   REAL, DIMENSION( ims:ime, jms:jme ), INTENT(INOUT) :: EP_PV_URB3D!GRZ
-   REAL, DIMENSION( ims:ime, 1:urban_map_zdf,jms:jme ), INTENT(INOUT) :: T_PV_URB3D!GRZ
-   REAL, DIMENSION( ims:ime, 1:urban_map_zgrd, jms:jme),INTENT(INOUT) :: TRV_URB4D ! GRZ
-   REAL, DIMENSION( ims:ime, 1:urban_map_zgrd, jms:jme),INTENT(INOUT) :: QR_URB4D ! GRZ
-   REAL, DIMENSION( ims:ime,jms:jme), INTENT(INOUT) :: QGR_URB3D ! GRZ
-   REAL, DIMENSION( ims:ime,jms:jme), INTENT(INOUT) :: TGR_URB3D ! GRZ
-   REAL, DIMENSION( ims:ime, 1:urban_map_zdf, jms:jme),INTENT(INOUT) :: DRAIN_URB4D !GRZ
-   REAL, DIMENSION( ims:ime, jms:jme ), INTENT(INOUT) :: DRAINGR_URB3D   !GRZ
-   REAL, DIMENSION( ims:ime, 1:urban_map_zdf, jms:jme),INTENT(INOUT) :: SFRV_URB3D !GRZ
-   REAL, DIMENSION( ims:ime, 1:urban_map_zdf, jms:jme),INTENT(INOUT) :: LFRV_URB3D ! GRZ
-   REAL, DIMENSION( ims:ime, 1:urban_map_zdf, jms:jme ),INTENT(INOUT) :: DGR_URB3D !GRZ
-   REAL, DIMENSION( ims:ime, 1:num_urban_ndm, jms:jme ),INTENT(INOUT) :: DG_URB3D !GRZ
-   REAL, DIMENSION( ims:ime, 1:urban_map_zdf, jms:jme ),INTENT(INOUT) :: LFR_URB3D !GRZ
-   REAL, DIMENSION( ims:ime, 1:num_urban_ndm, jms:jme ), INTENT(INOUT) :: LFG_URB3D !GRZ
-   REAL, DIMENSION( ims:ime, 1:num_soil_layers, jms:jme ), INTENT(IN) ::SMOIS_URB
    REAL, DIMENSION( ims:ime,1:num_urban_hi , jms:jme), INTENT(INOUT) :: HI_URB2D
    REAL, DIMENSION( ims:ime, jms:jme ), INTENT(INOUT) :: LP_URB2D
    REAL, DIMENSION( ims:ime, jms:jme ), INTENT(INOUT) :: LB_URB2D
@@ -2743,49 +2589,10 @@ ENDIF
 !m
 !FS   FRC_URB2D(I,J)=0.
       UTYPE_URB2D(I,J)=0
-
-      distributed_aerodynamics_check: IF (distributed_aerodynamics_option) THEN
-        IF (IVGTYP(I, J) == ISURBAN) THEN
-          UTYPE_URB2D(I, J) = 2
-        ELSE
-          UTYPE_URB2D(I, J) = 0
-        END IF
-      ELSE
-      SWITCH_URB=1
+      SWITCH_URB=0
 
             IF( IVGTYP(I,J) == ISURBAN)  THEN
-               IF(use_wudapt_lcz==0) THEN
-                  UTYPE_URB2D(I,J) = 2  ! for default. high-intensity
-               ELSE
-                  UTYPE_URB2D(I,J) = 5  ! for default. high-intensity
-               ENDIF
-            ELSE IF( IVGTYP(I,J) == LCZ_1) THEN
-               UTYPE_URB2D(I,J) = 1
-            ELSE IF( IVGTYP(I,J) == LCZ_2) THEN
-               UTYPE_URB2D(I,J) = 2
-            ELSE IF( IVGTYP(I,J) == LCZ_3) THEN
-               UTYPE_URB2D(I,J) = 3
-            ELSE IF( IVGTYP(I,J) == LCZ_4) THEN
-               UTYPE_URB2D(I,J) = 4
-            ELSE IF( IVGTYP(I,J) == LCZ_5) THEN
-               UTYPE_URB2D(I,J) = 5
-            ELSE IF( IVGTYP(I,J) == LCZ_6) THEN
-               UTYPE_URB2D(I,J) = 6
-            ELSE IF( IVGTYP(I,J) == LCZ_7) THEN
-               UTYPE_URB2D(I,J) = 7
-            ELSE IF( IVGTYP(I,J) == LCZ_8) THEN
-               UTYPE_URB2D(I,J) = 8
-            ELSE IF( IVGTYP(I,J) == LCZ_9) THEN
-               UTYPE_URB2D(I,J) = 9
-            ELSE IF( IVGTYP(I,J) == LCZ_10) THEN
-               UTYPE_URB2D(I,J) = 10
-            ELSE IF( IVGTYP(I,J) == LCZ_11) THEN
-               UTYPE_URB2D(I,J) = 11
-            ELSE
-               SWITCH_URB=0
-            ENDIF
-
-            IF (SWITCH_URB == 1) THEN
+               UTYPE_URB2D(I,J) = 2  ! for default. high-intensity
                UTYPE_URB = UTYPE_URB2D(I,J)  ! for default. high-intensity
                IF (HGT_URB2D(I,J)>0.) THEN
                   CONTINUE
@@ -2815,7 +2622,117 @@ ENDIF
                   WRITE(mesg,*) 'WARNING, THE URBAN FRACTION WILL BE READ FROM URBPARM.TBL'
                   WRITE_MESSAGE(mesg)
                   FRC_URB2D(I,J) = FRC_URB_TBL(UTYPE_URB)
+                ENDIF           
+               SWITCH_URB=1
+            ENDIF 
+
+            IF( IVGTYP(I,J) == LOW_DENSITY_RESIDENTIAL) THEN
+               UTYPE_URB2D(I,J) = 1  ! low-intensity residential
+               UTYPE_URB = UTYPE_URB2D(I,J)  ! low-intensity residential
+               IF (HGT_URB2D(I,J)>0.) THEN
+                  CONTINUE
+               ELSE
+                  WRITE(mesg,*) 'USING DEFAULT URBAN MORPHOLOGY'
+                  WRITE_MESSAGE(mesg)
+                  LP_URB2D(I,J)=0.
+                  LB_URB2D(I,J)=0.
+                  HGT_URB2D(I,J)=0.
+                  IF ( sf_urban_physics == 1 ) THEN
+                     MH_URB2D(I,J)=0.
+                     STDH_URB2D(I,J)=0.
+                     DO K=1,4
+                       LF_URB2D(I,K,J)=0.
+                     ENDDO
+                  ELSE IF ( ( sf_urban_physics == 2 ) .or. ( sf_urban_physics == 3 ) ) THEN
+                     DO K=1,num_urban_hi
+                        HI_URB2D(I,K,J)=0.
+                     ENDDO
+                  ENDIF
+               ENDIF
+                IF (FRC_URB2D(I,J)>0.and.FRC_URB2D(I,J)<=1.) THEN
+                  CONTINUE
+                ELSE
+                  WRITE(mesg,*) 'WARNING, FRC_URB2D = 0 BUT IVGTYP IS URBAN'
+                  WRITE_MESSAGE(mesg)
+                  WRITE(mesg,*) 'WARNING, THE URBAN FRACTION WILL BE READ FROM URBPARM.TBL'
+                  WRITE_MESSAGE(mesg)
+                  FRC_URB2D(I,J) = FRC_URB_TBL(UTYPE_URB)
+                ENDIF         
+              SWITCH_URB=1
+            ENDIF
+
+           IF( IVGTYP(I,J) == HIGH_DENSITY_RESIDENTIAL) THEN
+               UTYPE_URB2D(I,J) = 2  ! high-intensity
+               UTYPE_URB = UTYPE_URB2D(I,J)  ! high-intensity
+              IF (HGT_URB2D(I,J)>0.) THEN
+                  CONTINUE
+               ELSE
+                  WRITE(mesg,*) 'USING DEFAULT URBAN MORPHOLOGY'
+                  WRITE_MESSAGE(mesg)
+                  LP_URB2D(I,J)=0.
+                  LB_URB2D(I,J)=0.
+                  HGT_URB2D(I,J)=0.
+                  IF ( sf_urban_physics == 1 ) THEN
+                     MH_URB2D(I,J)=0.
+                     STDH_URB2D(I,J)=0.
+                     DO K=1,4
+                       LF_URB2D(I,K,J)=0.
+                     ENDDO
+                  ELSE IF ( ( sf_urban_physics == 2 ) .or. ( sf_urban_physics == 3 ) ) THEN
+                     DO K=1,num_urban_hi
+                        HI_URB2D(I,K,J)=0.
+                     ENDDO
+                  ENDIF
+               ENDIF
+                IF (FRC_URB2D(I,J)>0.and.FRC_URB2D(I,J)<=1.) THEN
+                  CONTINUE
+                ELSE
+                  WRITE(mesg,*) 'WARNING, FRC_URB2D = 0 BUT IVGTYP IS URBAN'
+                  WRITE_MESSAGE(mesg)
+                  WRITE(mesg,*) 'WARNING, THE URBAN FRACTION WILL BE READ FROM URBPARM.TBL'
+                  WRITE_MESSAGE(mesg)
+                  FRC_URB2D(I,J) = FRC_URB_TBL(UTYPE_URB)
                 ENDIF
+              SWITCH_URB=1
+            ENDIF
+
+            IF( IVGTYP(I,J) == HIGH_INTENSITY_INDUSTRIAL) THEN
+               UTYPE_URB2D(I,J) = 3  !  Commercial/Industrial/Transportation
+               UTYPE_URB = UTYPE_URB2D(I,J)  !  Commercial/Industrial/Transportation
+              IF (HGT_URB2D(I,J)>0.) THEN
+                  CONTINUE
+               ELSE
+                  WRITE(mesg,*) 'USING DEFAULT URBAN MORPHOLOGY'
+                  WRITE_MESSAGE(mesg)
+                  LP_URB2D(I,J)=0.
+                  LB_URB2D(I,J)=0.
+                  HGT_URB2D(I,J)=0.
+                  IF ( sf_urban_physics == 1 ) THEN
+                     MH_URB2D(I,J)=0.
+                     STDH_URB2D(I,J)=0.
+                     DO K=1,4
+                       LF_URB2D(I,K,J)=0.
+                     ENDDO
+                  ELSE IF ( ( sf_urban_physics == 2 ) .or. ( sf_urban_physics == 3 ) ) THEN
+                     DO K=1,num_urban_hi
+                        HI_URB2D(I,K,J)=0.
+                     ENDDO
+                  ENDIF
+               ENDIF
+                IF (FRC_URB2D(I,J)>0.and.FRC_URB2D(I,J)<=1.) THEN
+                  CONTINUE
+                ELSE
+                  WRITE(mesg,*) 'WARNING, FRC_URB2D = 0 BUT IVGTYP IS URBAN'
+                  WRITE_MESSAGE(mesg)
+                  WRITE(mesg,*) 'WARNING, THE URBAN FRACTION WILL BE READ FROM URBPARM.TBL'
+                  WRITE_MESSAGE(mesg)
+                  FRC_URB2D(I,J) = FRC_URB_TBL(UTYPE_URB)
+                ENDIF
+               SWITCH_URB=1
+            ENDIF
+
+            IF (SWITCH_URB==1) THEN
+                CONTINUE
             ELSE
                 FRC_URB2D(I,J)=0.
                 LP_URB2D(I,J)=0.
@@ -2833,7 +2750,6 @@ ENDIF
                    ENDDO
                 ENDIF
             ENDIF
-      END IF distributed_aerodynamics_check
 
 
       QC_URB2D(I,J)=0.01
@@ -2908,7 +2824,15 @@ ENDIF
       END DO
       
 ! multi-layer urban
+!      IF( sf_urban_physics .EQ. 2)THEN
        IF((SF_URBAN_PHYSICS.eq.2).OR.(SF_URBAN_PHYSICS.eq.3)) THEN
+!        TRB_URB4D(I,k,J)=TSURFACE0_URB(I,J)
+!        TW1_URB4D(I,k,J)=TSURFACE0_URB(I,J)
+!        TW2_URB4D(I,k,J)=TSURFACE0_URB(I,J)
+!        TGB_URB4D(I,k,J)=TSURFACE0_URB(I,J)
+!MT        TRB_URB4D(I,K,J)=tlayer0_urb(I,1,J)
+!MT        TW1_URB4D(I,K,J)=tlayer0_urb(I,1,J)
+!MT        TW2_URB4D(I,K,J)=tlayer0_urb(I,1,J)
         IF (UTYPE_URB2D(I,J) > 0) THEN
            TRB_URB4D(I,:,J)=TBLEND_TBL(UTYPE_URB2D(I,J))
            TW1_URB4D(I,:,J)=TBLEND_TBL(UTYPE_URB2D(I,J))
@@ -2932,26 +2856,6 @@ ENDIF
          CM_AC_URB3D(I,J)=0.
          SFVENT_URB3D(I,J)=0.
          LFVENT_URB3D(I,J)=0.
-         EP_PV_URB3D(I,J)=0.
-         T_PV_URB3D(I,:,J)=tlayer0_urb(I,1,J)
-         TGR_URB3D(I,J)=tlayer0_urb(I,1,J)
-         QR_URB4D(I,:,J)=SMOIS_URB(I,1,J)
-         DRAIN_URB4D(I,:,J)=0. !GRZ
-         SFRV_URB3D(I,:,J)=0.                !GRZ
-         LFRV_URB3D(I,:,J)=0.                !GRZ
-         DGR_URB3D(I,:,J)=0.  !GRZ
-         DG_URB3D(I,:,J)=0.
-         LFR_URB3D(I,:,J)=0.
-         LFG_URB3D(I,:,J)=0.
-         QGR_URB3D(I,J)=SMOIS_URB(I,1,J)  !GRZ
-         TGR_URB3D(I,J)=0.
-         DRAINGR_URB3D(I,J)=0. !GRZ
-
-       IF (UTYPE_URB2D(I,J) > 0) THEN
-        TRV_URB4D(I,:,J)=TBLEND_TBL(UTYPE_URB2D(I,J))
-       ELSE
-       TRV_URB4D(I,:,J)=tlayer0_urb(I,1,J) !GRZ
-      ENDIF
 
             TLEV_URB3D(I,:,J)=tlayer0_urb(I,1,J)
             TW1LEV_URB3D(I,:,J)=tlayer0_urb(I,1,J)
@@ -2994,7 +2898,7 @@ ENDIF
       IF (CHECK.EQ.0)THEN
       IF(IVGTYP(I,J).EQ.1)THEN
         write(mesg,*) 'Sample of Urban settings'
-        WRITE_MESSAGE(mesg)
+        call wrf_message(mesg)
         write(mesg,*) 'TSURFACE0_URB',TSURFACE0_URB(I,J)
         WRITE_MESSAGE(mesg)
         write(mesg,*) 'TDEEP0_URB', TDEEP0_URB(I,J)
@@ -3112,7 +3016,7 @@ ENDIF
 END SUBROUTINE bisection
 !===========================================================================
 
-SUBROUTINE SFCDIF_URB (ZLM,Z0,THZ0,THLM,SFCSPD,AKANDA,AKMS,AKHS,RLMO,CD,ZT_OUT,VEGFRAC)
+SUBROUTINE SFCDIF_URB (ZLM,Z0,THZ0,THLM,SFCSPD,AKANDA,AKMS,AKHS,RLMO,CD)
 
 ! ----------------------------------------------------------------------
 ! SUBROUTINE SFCDIF_URB (Urban version of SFCDIF_off)
@@ -3131,8 +3035,6 @@ SUBROUTINE SFCDIF_URB (ZLM,Z0,THZ0,THLM,SFCSPD,AKANDA,AKMS,AKHS,RLMO,CD,ZT_OUT,V
       REAL     SFCSPD, AKANDA, AKMS, AKHS, ZU, ZT, RDZ, CXCH
       REAL     DTHV, DU2, BTGH, WSTAR2, USTAR, ZSLU, ZSLT, RLOGU, RLOGT
       REAL     RLMO, ZETALT, ZETALU, ZETAU, ZETAT, XLU4, XLT4, XU4, XT4
-      REAL, INTENT(OUT), OPTIONAL :: ZT_OUT
-      REAL, INTENT(IN), OPTIONAL :: VEGFRAC
 !CC   ......REAL ZTFC
 
       REAL     XLU, XLT, XU, XT, PSMZ, SIMM, PSHZ, SIMH, USTARK, RLMN,  &
@@ -3214,12 +3116,7 @@ SUBROUTINE SFCDIF_URB (ZLM,Z0,THZ0,THLM,SFCSPD,AKANDA,AKMS,AKHS,RLMO,CD,ZT_OUT,V
 ! ----------------------------------------------------------------------
 ! KCL/TL Try Kanda approach instead (Kanda et al. 2007, JAMC)
 !      ZT = EXP (ZILFC * SQRT (USTAR * Z0))* Z0
-      IF (PRESENT(VEGFRAC)) THEN
-        ! Kawai et al. (2009) JAMC
-        ZT = EXP (2.0-(AKANDA-0.9*VEGFRAC**0.29)*(SQVISC**2 * USTAR * Z0)**0.25)* Z0
-      ELSE
       ZT = EXP (2.0-AKANDA*(SQVISC**2 * USTAR * Z0)**0.25)* Z0
-      END IF
       
       ZSLU = ZLM + ZU
 
@@ -3288,12 +3185,7 @@ SUBROUTINE SFCDIF_URB (ZLM,Z0,THZ0,THLM,SFCSPD,AKANDA,AKMS,AKHS,RLMO,CD,ZT_OUT,V
             USTAR = MAX (SQRT (AKMS * SQRT (DU2+ WSTAR2)),EPSUST)
             !KCL/TL
             !ZT = EXP (ZILFC * SQRT (USTAR * Z0))* Z0
-            IF (PRESENT(VEGFRAC)) THEN
-              ! Kawai et al. (2009) JAMC
-              ZT = EXP (2.0-(AKANDA-0.9*VEGFRAC**0.29)*(SQVISC**2 * USTAR * Z0)**0.25)* Z0
-            ELSE
             ZT = EXP (2.0-AKANDA*(SQVISC**2 * USTAR * Z0)**0.25)* Z0
-            END IF
             ZSLT = ZLM + ZT
             RLOGT = log (ZSLT / ZT)
             USTARK = USTAR * VKRM
@@ -3317,8 +3209,6 @@ SUBROUTINE SFCDIF_URB (ZLM,Z0,THZ0,THLM,SFCSPD,AKANDA,AKMS,AKHS,RLMO,CD,ZT_OUT,V
       END DO
 
       CD = USTAR*USTAR/SFCSPD**2
-
-      IF (PRESENT(ZT_OUT)) ZT_OUT = ZT
 ! ----------------------------------------------------------------------
   END SUBROUTINE SFCDIF_URB
 ! ----------------------------------------------------------------------
@@ -4174,17 +4064,5 @@ SUBROUTINE SFCDIF_URB (ZLM,Z0,THZ0,THLM,SFCSPD,AKANDA,AKMS,AKHS,RLMO,CD,ZT_OUT,V
 ! ----------------------------------------------------------------------
   END SUBROUTINE TDFCND
 ! ----------------------------------------------------------------------
-
-  FUNCTION kanda_kawai_svf(lp, lf) RESULT (svf)
-    IMPLICIT NONE
-    real, intent(in) :: lp, lf
-    real :: hovl, vloc, vmod, svf
-
-    hovl = lf * lp ** (-0.5) / (1. - lp ** 0.5)
-    vloc = cos(atan(2. * hovl)) * (2. - 4. / piconst * atan(cos(atan(2. * hovl))))
-    vmod = 0.1120 * lp * vloc - 0.4817 * lp + 0.0246 * vloc + 0.9570
-    svf = vloc * vmod
-  END FUNCTION kanda_kawai_svf
-
 !===========================================================================
 END MODULE module_sf_urban

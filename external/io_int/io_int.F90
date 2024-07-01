@@ -9,8 +9,6 @@
 ! Uses header manipulation routines in module_io_quilt.F
 !
 
-#include "intio_tags.h"
-
 MODULE module_ext_internal
 
   USE module_internal_header_util
@@ -170,7 +168,7 @@ SUBROUTINE ext_int_open_for_write( FileName , Comm_compute, Comm_io, SysDepInfo,
                                    DataHandle , Status )
   USE module_ext_internal
   IMPLICIT NONE
-
+  INCLUDE 'intio_tags.h'
   CHARACTER*(*) :: FileName
   INTEGER ,       INTENT(IN)  :: Comm_compute , Comm_io
   CHARACTER*(*) :: SysDepInfo
@@ -189,7 +187,7 @@ SUBROUTINE ext_int_open_for_write_begin( FileName , Comm_compute, Comm_io, SysDe
                                          DataHandle , Status )
   USE module_ext_internal
   IMPLICIT NONE
-
+  INCLUDE 'intio_tags.h'
 #include "wrf_io_flags.h"
   CHARACTER*(*) :: FileName
   INTEGER ,       INTENT(IN)  :: Comm_compute , Comm_io
@@ -223,7 +221,7 @@ END SUBROUTINE ext_int_open_for_write_begin
 SUBROUTINE ext_int_open_for_write_commit( DataHandle , Status )
   USE module_ext_internal
   IMPLICIT NONE
-
+  INCLUDE 'intio_tags.h'
 #include "wrf_io_flags.h"
   INTEGER ,       INTENT(IN ) :: DataHandle
   INTEGER ,       INTENT(OUT) :: Status
@@ -364,7 +362,7 @@ SUBROUTINE ext_int_ioexit( Status )
 
   USE module_ext_internal
   IMPLICIT NONE
-
+  INCLUDE 'intio_tags.h'
   INTEGER ,       INTENT(OUT) :: Status
   INTEGER                     :: DataHandle
   INTEGER i,ierr
@@ -377,7 +375,7 @@ END SUBROUTINE ext_int_ioexit
 SUBROUTINE ext_int_get_next_time ( DataHandle, DateStr, Status )
   USE module_ext_internal
   IMPLICIT NONE
-
+  INCLUDE 'intio_tags.h'
   INTEGER ,       INTENT(IN)  :: DataHandle
   CHARACTER*(*) :: DateStr
   INTEGER ,       INTENT(OUT) :: Status
@@ -419,7 +417,7 @@ SUBROUTINE ext_int_get_next_time ( DataHandle, DateStr, Status )
     READ( unit=DataHandle, iostat=istat ) hdrbuf   ! this is okay as long as no other record type has data that follows
     IF ( istat .EQ. 0 ) THEN
       code = hdrbuf(2)
-      IF ( code .EQ. INT_FIELD ) THEN
+      IF ( code .EQ. int_field ) THEN
         CALL int_get_write_field_header ( hdrbuf, hdrbufsize, inttypesize, typesize,           &
                                  locDataHandle , locDateStr , locVarName , Field , locFieldType , locComm , locIOComm,  &
                                  locDomainDesc , locMemoryOrder , locStagger , locDimNames ,              &
@@ -435,7 +433,7 @@ SUBROUTINE ext_int_get_next_time ( DataHandle, DateStr, Status )
         ELSE
           READ( unit=DataHandle, iostat=istat )
         ENDIF
-      ELSE IF ( code .EQ. INT_DOM_TD_CHAR ) THEN
+      ELSE IF ( code .EQ. int_dom_td_char ) THEN
         CALL int_get_td_header_char( hdrbuf, hdrbufsize, itypesize, &
                               locDataHandle, locDateStr, locElement, locData, loccode )
         IF ( TRIM(locDateStr) .NE. TRIM(CurrentDateInFile(DataHandle) ) ) THEN  ! control break, return this date
@@ -462,13 +460,13 @@ END SUBROUTINE ext_int_get_next_time
 SUBROUTINE ext_int_set_time ( DataHandle, DateStr, Status )
   USE module_ext_internal
   IMPLICIT NONE
-
+  INCLUDE 'intio_tags.h'
   INTEGER ,       INTENT(IN)  :: DataHandle
   CHARACTER*(*) :: DateStr
   INTEGER ,       INTENT(OUT) :: Status
 
   CALL int_gen_ti_header_char( hdrbuf, hdrbufsize, itypesize,        &
-                               DataHandle, "TIMESTAMP", "", TRIM(DateStr), INT_SET_TIME )
+                               DataHandle, "TIMESTAMP", "", TRIM(DateStr), int_set_time )
   WRITE( unit=DataHandle ) hdrbuf
   Status = 0
   RETURN
@@ -479,7 +477,7 @@ SUBROUTINE ext_int_get_var_info ( DataHandle , VarName , NDim , MemoryOrder , St
                               DomainStart , DomainEnd , WrfType, Status )
   USE module_ext_internal
   IMPLICIT NONE
-
+  INCLUDE 'intio_tags.h'
   integer               ,intent(in)     :: DataHandle
   character*(*)         ,intent(in)     :: VarName
   integer               ,intent(out)    :: NDim
@@ -521,7 +519,7 @@ SUBROUTINE ext_int_get_var_info ( DataHandle , VarName , NDim , MemoryOrder , St
     READ( unit=DataHandle, iostat=istat ) hdrbuf   ! this is okay as long as no other record type has data that follows
     IF ( istat .EQ. 0 ) THEN
       code = hdrbuf(2)
-      IF ( code .EQ. INT_FIELD ) THEN
+      IF ( code .EQ. int_field ) THEN
         CALL int_get_write_field_header ( hdrbuf, hdrbufsize, inttypesize, typesize,           &
                                  locDataHandle , locDateStr , locVarName , Field , locFieldType , locComm , locIOComm,  &
                                  locDomainDesc , MemoryOrder , locStagger , locDimNames ,              &
@@ -563,7 +561,7 @@ END SUBROUTINE ext_int_get_var_info
 SUBROUTINE ext_int_get_next_var ( DataHandle, VarName, Status )
   USE module_ext_internal
   IMPLICIT NONE
-
+  include 'intio_tags.h'
   include 'wrf_status_codes.h'
   INTEGER ,       INTENT(IN)  :: DataHandle
   CHARACTER*(*) :: VarName
@@ -608,20 +606,20 @@ real    rdata(128)
     IF ( istat .EQ. 0 ) THEN
       code = hdrbuf(2)
 #if 1
-      IF ( code .EQ. INT_DOM_TI_CHAR ) THEN
+      IF ( code .EQ. int_dom_ti_char ) THEN
         CALL int_get_ti_header_char( hdrbuf, hdrbufsize, itypesize, &
                                          locDataHandle, locElement, dumstr, strData, loccode )
       ENDIF
-      IF ( code .EQ. INT_DOM_TI_INTEGER ) THEN
+      IF ( code .EQ. int_dom_ti_integer ) THEN
         CALL int_get_ti_header( hdrbuf, hdrbufsize, itypesize, rtypesize, &
                                 locDataHandle, locElement, iData, loccount, code )
       ENDIF
-      IF ( code .EQ. INT_DOM_TI_REAL ) THEN
+      IF ( code .EQ. int_dom_ti_real ) THEN
         CALL int_get_ti_header( hdrbuf, hdrbufsize, itypesize, rtypesize, &
                                 locDataHandle, locElement, rData, loccount, code )
       ENDIF
 #endif
-      IF ( code .EQ. INT_FIELD ) THEN
+      IF ( code .EQ. int_field ) THEN
         CALL int_get_write_field_header ( hdrbuf, hdrbufsize, inttypesize, typesize,           &
                                  locDataHandle , locDateStr , locVarName , Field , locFieldType , locComm , locIOComm,  &
                                  locDomainDesc , locMemoryOrder , locStagger , locDimNames ,              &
@@ -662,7 +660,7 @@ END SUBROUTINE ext_int_get_next_var
 SUBROUTINE ext_int_get_dom_ti_real ( DataHandle,Element,   Data, Count, Outcount, Status )
   USE module_ext_internal
   IMPLICIT NONE
-
+  INCLUDE 'intio_tags.h'
   INTEGER ,       INTENT(IN)  :: DataHandle
   CHARACTER*(*) :: Element
   REAL ,          INTENT(OUT) :: Data(*)
@@ -683,7 +681,7 @@ SUBROUTINE ext_int_get_dom_ti_real ( DataHandle,Element,   Data, Count, Outcount
         READ( unit=DataHandle , iostat = istat ) hdrbuf
         IF ( istat .EQ. 0 ) THEN
           code = hdrbuf(2)
-          IF ( code .EQ. INT_DOM_TI_REAL ) THEN
+          IF ( code .EQ. int_dom_ti_real ) THEN
             CALL int_get_ti_header( hdrbuf, hdrbufsize, itypesize, rtypesize, &
                                     locDataHandle, locElement, Data, loccount, code )
             IF ( TRIM(locElement) .EQ. TRIM(Element) ) THEN
@@ -692,11 +690,11 @@ SUBROUTINE ext_int_get_dom_ti_real ( DataHandle,Element,   Data, Count, Outcount
               ENDIF
               keepgoing = .false. ;  Status = 0
             ENDIF
-          ELSE IF ( .NOT. ( code .EQ. INT_DOM_TI_INTEGER .OR. code .EQ. INT_DOM_TI_LOGICAL .OR. &
-                            code .EQ. INT_DOM_TI_CHAR    .OR. code .EQ. INT_DOM_TI_DOUBLE  .OR. &
-                            code .EQ. INT_DOM_TD_INTEGER .OR. code .EQ. INT_DOM_TD_LOGICAL .OR. &
-                            code .EQ. INT_DOM_TD_CHAR    .OR. code .EQ. INT_DOM_TD_DOUBLE  .OR. &
-                            code .EQ. INT_DOM_TD_REAL                                  ) ) THEN
+          ELSE IF ( .NOT. ( code .EQ. int_dom_ti_integer .OR. code .EQ. int_dom_ti_logical .OR. &
+                            code .EQ. int_dom_ti_char    .OR. code .EQ. int_dom_ti_double  .OR. &
+                            code .EQ. int_dom_td_integer .OR. code .EQ. int_dom_td_logical .OR. &
+                            code .EQ. int_dom_td_char    .OR. code .EQ. int_dom_td_double  .OR. &
+                            code .EQ. int_dom_td_real                                  ) ) THEN
             BACKSPACE ( unit=DataHandle )
             keepgoing = .false. ; Status = 2
           ENDIF
@@ -714,7 +712,7 @@ END SUBROUTINE ext_int_get_dom_ti_real
 SUBROUTINE ext_int_put_dom_ti_real ( DataHandle,Element,   Data, Count,  Status )
   USE module_ext_internal
   IMPLICIT NONE
-
+  INCLUDE 'intio_tags.h'
   INTEGER ,       INTENT(IN)  :: DataHandle
   CHARACTER*(*) :: Element
   REAL ,          INTENT(IN) :: Data(*)
@@ -728,7 +726,7 @@ SUBROUTINE ext_int_put_dom_ti_real ( DataHandle,Element,   Data, Count,  Status 
       ! Do nothing unless it is time to write time-independent domain metadata.
       IF ( int_ok_to_put_dom_ti( DataHandle ) ) THEN
         CALL int_gen_ti_header( hdrbuf, hdrbufsize, itypesize, rtypesize, &
-                                DataHandle, Element, Data, Count, INT_DOM_TI_REAL )
+                                DataHandle, Element, Data, Count, int_dom_ti_real )
         WRITE( unit=DataHandle ) hdrbuf
       ENDIF
     ENDIF
@@ -774,7 +772,7 @@ END SUBROUTINE ext_int_put_dom_ti_double
 SUBROUTINE ext_int_get_dom_ti_integer ( DataHandle,Element,   Data, Count, Outcount, Status )
   USE module_ext_internal
   IMPLICIT NONE
-
+  INCLUDE 'intio_tags.h'
   INTEGER ,       INTENT(IN)  :: DataHandle
   CHARACTER*(*) :: Element
   integer ,            INTENT(OUT) :: Data(*)
@@ -795,7 +793,7 @@ SUBROUTINE ext_int_get_dom_ti_integer ( DataHandle,Element,   Data, Count, Outco
         READ( unit=DataHandle , iostat = istat ) hdrbuf
         IF ( istat .EQ. 0 ) THEN
           code = hdrbuf(2)
-          IF ( code .EQ. INT_DOM_TI_INTEGER ) THEN
+          IF ( code .EQ. int_dom_ti_integer ) THEN
             CALL int_get_ti_header( hdrbuf, hdrbufsize, itypesize, rtypesize, &
                                     locDataHandle, locElement, Data, loccount, code )
             IF ( TRIM(locElement) .EQ. TRIM(Element) ) THEN
@@ -805,11 +803,11 @@ SUBROUTINE ext_int_get_dom_ti_integer ( DataHandle,Element,   Data, Count, Outco
               keepgoing = .false. ;  Status = 0
             ENDIF
 
-          ELSE IF ( .NOT. ( code .EQ. INT_DOM_TI_REAL    .OR.   code .EQ. INT_DOM_TI_LOGICAL .OR. &
-                            code .EQ. INT_DOM_TI_CHAR    .OR.   code .EQ. INT_DOM_TI_DOUBLE  .OR. &
-                            code .EQ. INT_DOM_TD_REAL    .OR.   code .EQ. INT_DOM_TD_LOGICAL .OR. &
-                            code .EQ. INT_DOM_TD_CHAR    .OR.   code .EQ. INT_DOM_TD_DOUBLE  .OR. &
-                            code .EQ. INT_DOM_TD_INTEGER )                                           ) THEN
+          ELSE IF ( .NOT. ( code .EQ. int_dom_ti_real    .OR.   code .EQ. int_dom_ti_logical .OR. &
+                            code .EQ. int_dom_ti_char    .OR.   code .EQ. int_dom_ti_double  .OR. &
+                            code .EQ. int_dom_td_real    .OR.   code .EQ. int_dom_td_logical .OR. &
+                            code .EQ. int_dom_td_char    .OR.   code .EQ. int_dom_td_double  .OR. &
+                            code .EQ. int_dom_td_integer )                                           ) THEN
             BACKSPACE ( unit=DataHandle )
             keepgoing = .false. ; Status = 1
           ENDIF
@@ -827,7 +825,7 @@ END SUBROUTINE ext_int_get_dom_ti_integer
 SUBROUTINE ext_int_put_dom_ti_integer ( DataHandle,Element,   Data, Count,  Status )
   USE module_ext_internal
   IMPLICIT NONE
-
+  INCLUDE 'intio_tags.h'
   INTEGER ,       INTENT(IN)  :: DataHandle
   CHARACTER*(*) :: Element
   INTEGER ,       INTENT(IN) :: Data(*)
@@ -840,7 +838,7 @@ SUBROUTINE ext_int_put_dom_ti_integer ( DataHandle,Element,   Data, Count,  Stat
       ! Do nothing unless it is time to write time-independent domain metadata.
       IF ( int_ok_to_put_dom_ti( DataHandle ) ) THEN
         CALL int_gen_ti_header( hdrbuf, hdrbufsize, itypesize, itypesize, &
-                                DataHandle, Element, Data, Count, INT_DOM_TI_INTEGER )
+                                DataHandle, Element, Data, Count, int_dom_ti_integer )
         WRITE( unit=DataHandle ) hdrbuf 
       ENDIF
     ENDIF
@@ -886,7 +884,7 @@ END SUBROUTINE ext_int_put_dom_ti_logical
 SUBROUTINE ext_int_get_dom_ti_char ( DataHandle,Element,   Data,  Status )
   USE module_ext_internal
   IMPLICIT NONE
-
+  INCLUDE 'intio_tags.h'
   INTEGER ,       INTENT(IN)  :: DataHandle
   CHARACTER*(*) :: Element
   CHARACTER*(*) :: Data
@@ -907,17 +905,17 @@ SUBROUTINE ext_int_get_dom_ti_char ( DataHandle,Element,   Data,  Status )
 
         IF ( istat .EQ. 0 ) THEN
           code = hdrbuf(2)
-          IF ( code .EQ. INT_DOM_TI_CHAR ) THEN
+          IF ( code .EQ. int_dom_ti_char ) THEN
             CALL int_get_ti_header_char( hdrbuf, hdrbufsize, itypesize, &
                                          locDataHandle, locElement, dumstr, Data, code )
             IF ( TRIM(locElement) .EQ. TRIM(Element) ) THEN
               keepgoing = .false. ;  Status = 0
             ENDIF
-          ELSE IF ( .NOT. ( code .EQ. INT_DOM_TI_REAL    .OR. code .EQ. INT_DOM_TI_LOGICAL .OR. &
-                            code .EQ. INT_DOM_TI_INTEGER .OR. code .EQ. INT_DOM_TI_DOUBLE  .OR. &
-                            code .EQ. INT_DOM_TD_REAL    .OR. code .EQ. INT_DOM_TD_LOGICAL .OR. &
-                            code .EQ. INT_DOM_TD_INTEGER .OR. code .EQ. INT_DOM_TD_DOUBLE  .OR. &
-                            code .EQ. INT_DOM_TD_CHAR                                             ) ) THEN
+          ELSE IF ( .NOT. ( code .EQ. int_dom_ti_real    .OR. code .EQ. int_dom_ti_logical .OR. &
+                            code .EQ. int_dom_ti_integer .OR. code .EQ. int_dom_ti_double  .OR. &
+                            code .EQ. int_dom_td_real    .OR. code .EQ. int_dom_td_logical .OR. &
+                            code .EQ. int_dom_td_integer .OR. code .EQ. int_dom_td_double  .OR. &
+                            code .EQ. int_dom_td_char                                             ) ) THEN
             BACKSPACE ( unit=DataHandle )
             keepgoing = .false. ; Status = 1
           ENDIF
@@ -935,7 +933,7 @@ END SUBROUTINE ext_int_get_dom_ti_char
 SUBROUTINE ext_int_put_dom_ti_char ( DataHandle, Element,  Data,  Status )
   USE module_ext_internal
   IMPLICIT NONE
-
+  INCLUDE 'intio_tags.h'
   INTEGER ,       INTENT(IN)  :: DataHandle
   CHARACTER*(*) :: Element
   CHARACTER*(*) :: Data
@@ -949,7 +947,7 @@ SUBROUTINE ext_int_put_dom_ti_char ( DataHandle, Element,  Data,  Status )
       ! Do nothing unless it is time to write time-independent domain metadata.
       IF ( int_ok_to_put_dom_ti( DataHandle ) ) THEN
         CALL int_gen_ti_header_char( hdrbuf, hdrbufsize, itypesize,  &
-                                     DataHandle, Element, "", Data, INT_DOM_TI_CHAR )
+                                     DataHandle, Element, "", Data, int_dom_ti_char )
         WRITE( unit=DataHandle ) hdrbuf 
       ENDIF
     ENDIF
@@ -1064,7 +1062,7 @@ END SUBROUTINE ext_int_put_dom_td_logical
 SUBROUTINE ext_int_get_dom_td_char ( DataHandle,Element, DateStr,  Data,  Status )
   USE module_ext_internal
   IMPLICIT NONE
-
+  INCLUDE 'intio_tags.h'
   INTEGER ,       INTENT(IN)  :: DataHandle
   CHARACTER*(*) :: Element
   CHARACTER*(*) :: Data, DateStr
@@ -1082,7 +1080,7 @@ SUBROUTINE ext_int_get_dom_td_char ( DataHandle,Element, DateStr,  Data,  Status
 
         IF ( istat .EQ. 0 ) THEN
           code = hdrbuf(2)
-          IF ( code .EQ. INT_DOM_TD_CHAR ) THEN
+          IF ( code .EQ. int_dom_td_char ) THEN
             CALL int_get_td_header_char( hdrbuf, hdrbufsize, itypesize, &
                                          locDataHandle, locDateStr, locElement, Data, code )
             IF ( TRIM(locElement) .EQ. TRIM(Element) ) THEN
@@ -1105,7 +1103,7 @@ END SUBROUTINE ext_int_get_dom_td_char
 SUBROUTINE ext_int_put_dom_td_char ( DataHandle,Element, DateStr,  Data,  Status )
   USE module_ext_internal
   IMPLICIT NONE
-
+  INCLUDE 'intio_tags.h'
   INTEGER ,       INTENT(IN)  :: DataHandle
   CHARACTER*(*) :: Element
   CHARACTER*(*) :: Data, DateStr
@@ -1116,7 +1114,7 @@ SUBROUTINE ext_int_put_dom_td_char ( DataHandle,Element, DateStr,  Data,  Status
   IF ( int_valid_handle ( Datahandle ) ) THEN
     IF ( int_handle_in_use( DataHandle ) ) THEN
       CALL int_gen_td_header_char( hdrbuf, hdrbufsize, itypesize,  &
-                                   DataHandle, DateStr, Element, Data, INT_DOM_TD_CHAR )
+                                   DataHandle, DateStr, Element, Data, int_dom_td_char )
       WRITE( unit=DataHandle ) hdrbuf
     ENDIF
   ENDIF
@@ -1180,7 +1178,7 @@ END SUBROUTINE ext_int_put_var_ti_double
 SUBROUTINE ext_int_get_var_ti_integer ( DataHandle,Element,  Varname, Data, Count, Outcount, Status )
   USE module_ext_internal
   IMPLICIT NONE
-
+#include "intio_tags.h"
   INTEGER ,       INTENT(IN)  :: DataHandle
   CHARACTER*(*) :: Element
   CHARACTER*(*) :: VarName 
@@ -1194,7 +1192,7 @@ SUBROUTINE ext_int_get_var_ti_integer ( DataHandle,Element,  Varname, Data, Coun
      IF ( int_handle_in_use( DataHandle ) ) THEN
         READ( unit=DataHandle ) hdrbuf
         code=hdrbuf(2)
-        IF ( code .NE. INT_VAR_TI_INTEGER ) THEN
+        IF ( code .NE. int_var_ti_integer ) THEN
            BACKSPACE ( unit=DataHandle )
            write(*,*) 'unexpected code=',code,' in ext_int_get_var_ti_integer'
            Status = 1
@@ -1221,7 +1219,7 @@ SUBROUTINE ext_int_put_var_ti_integer ( DataHandle,Element,  Varname, Data, Coun
   USE module_ext_internal
   USE module_internal_header_util, only: int_gen_ti_header_integer_varna
   IMPLICIT NONE
-
+#include "intio_tags.h"
   INTEGER ,       INTENT(IN)  :: DataHandle
   CHARACTER*(*) :: Element
   CHARACTER*(*) :: VarName 
@@ -1232,7 +1230,7 @@ SUBROUTINE ext_int_put_var_ti_integer ( DataHandle,Element,  Varname, Data, Coun
     IF ( int_handle_in_use( DataHandle ) ) THEN
       CALL int_gen_ti_header_integer_varna( hdrbuf, hdrbufsize, itypesize,4,  &
                               DataHandle, TRIM(Element), TRIM(VarName), Data, Count, &
-                              INT_VAR_TI_INTEGER )
+                              int_var_ti_integer )
       WRITE( unit=DataHandle ) hdrbuf
     ENDIF
   ENDIF
@@ -1269,7 +1267,7 @@ END SUBROUTINE ext_int_put_var_ti_logical
 SUBROUTINE ext_int_get_var_ti_char ( DataHandle,Element,  Varname, Data,  Status )
   USE module_ext_internal
   IMPLICIT NONE
-
+  INCLUDE 'intio_tags.h'
   INTEGER ,       INTENT(IN)  :: DataHandle
   CHARACTER*(*) :: Element
   CHARACTER*(*) :: VarName 
@@ -1281,7 +1279,7 @@ SUBROUTINE ext_int_get_var_ti_char ( DataHandle,Element,  Varname, Data,  Status
     IF ( int_handle_in_use( DataHandle ) ) THEN
       READ( unit=DataHandle ) hdrbuf
        code=hdrbuf(2)
-       IF ( code .NE. INT_VAR_TI_CHAR ) THEN
+       IF ( code .NE. int_var_ti_char ) THEN
           BACKSPACE ( unit=DataHandle )
           Status = 1
           return
@@ -1304,7 +1302,7 @@ END SUBROUTINE ext_int_get_var_ti_char
 SUBROUTINE ext_int_put_var_ti_char ( DataHandle,Element,  Varname, Data,  Status )
   USE module_ext_internal
   IMPLICIT NONE
-
+  INCLUDE 'intio_tags.h'
   INTEGER ,       INTENT(IN)  :: DataHandle
   CHARACTER*(*) :: Element
   CHARACTER*(*) :: VarName 
@@ -1315,7 +1313,7 @@ SUBROUTINE ext_int_put_var_ti_char ( DataHandle,Element,  Varname, Data,  Status
   IF ( int_valid_handle (DataHandle) ) THEN
     IF ( int_handle_in_use( DataHandle ) ) THEN
       CALL int_gen_ti_header_char( hdrbuf, hdrbufsize, itypesize,  &
-                              DataHandle, TRIM(Element), TRIM(VarName), TRIM(Data), INT_VAR_TI_CHAR )
+                              DataHandle, TRIM(Element), TRIM(VarName), TRIM(Data), int_var_ti_char )
       WRITE( unit=DataHandle ) hdrbuf
     ENDIF
   ENDIF
@@ -1467,7 +1465,7 @@ SUBROUTINE ext_int_read_field ( DataHandle , DateStr , VarName , Field , FieldTy
   USE module_ext_internal
   IMPLICIT NONE
 #include "wrf_io_flags.h"
-
+  include 'intio_tags.h'
   INTEGER ,       INTENT(IN)    :: DataHandle 
   CHARACTER*(*) :: DateStr
   CHARACTER*(*) :: VarName
@@ -1521,7 +1519,7 @@ SUBROUTINE ext_int_read_field ( DataHandle , DateStr , VarName , Field , FieldTy
     READ( unit=DataHandle, iostat=istat ) hdrbuf   ! this is okay as long as no other record type has data that follows
     IF ( istat .EQ. 0 ) THEN
       code = hdrbuf(2)
-      IF ( code .EQ. INT_FIELD ) THEN
+      IF ( code .EQ. int_field ) THEN
         CALL int_get_write_field_header ( hdrbuf, hdrbufsize, inttypesize, typesize,           &
                                  locDataHandle , locDateStr , locVarName , Field , locFieldType , locComm , locIOComm,  &
                                  locDomainDesc , locMemoryOrder , locStagger , locDimNames ,              &

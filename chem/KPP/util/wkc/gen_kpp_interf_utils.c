@@ -1,6 +1,4 @@
 #include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
 
 
 #include "protos.h"
@@ -8,7 +6,7 @@
 #include "kpp_data.h"
 
 
-void 
+int 
 decl_misc (  FILE * ofile )
 {
 
@@ -44,7 +42,7 @@ decl_misc (  FILE * ofile )
  fprintf(ofile," \n\n\n\n ");
 }
 
-void 
+int 
 decl_jv (  FILE * ofile )
 {
   int n;  
@@ -75,7 +73,7 @@ count_members(  knode_t * nl )
 
 
 
-void 
+int 
 decl_jv_pointers (  FILE * ofile )
 {
   knode_t * pl;
@@ -105,7 +103,7 @@ decl_jv_pointers (  FILE * ofile )
 }
 
 
-void 
+int 
 gen_map_jval (  FILE * ofile )
 {
   knode_t * pl;
@@ -128,7 +126,8 @@ gen_map_jval (  FILE * ofile )
 
 
 
-void 
+
+int 
 gen_map_wrf_to_kpp (  FILE * ofile,  knode_t * nl )
 {
  knode_t * pml;
@@ -155,7 +154,7 @@ gen_map_wrf_to_kpp (  FILE * ofile,  knode_t * nl )
 
 
 
-void 
+int 
 gen_map_kpp_to_wrf (  FILE * ofile,  knode_t * nl )
 {
  knode_t * pml;
@@ -181,7 +180,7 @@ gen_map_kpp_to_wrf (  FILE * ofile,  knode_t * nl )
 }
 
 
-void  
+int 
 gen_kpp_pargs( FILE * ofile, knode_t * nl  )
 {
  knode_t * pml;
@@ -218,7 +217,7 @@ gen_kpp_pargs( FILE * ofile, knode_t * nl  )
 }
 
 
-void 
+int 
 gen_kpp_pdecl( FILE * ofile, knode_t * nl  )
 {
  knode_t * pml;
@@ -256,7 +255,7 @@ gen_kpp_pdecl( FILE * ofile, knode_t * nl  )
 }
 
 
-void
+int
 wki_start_loop( FILE * ofile )
 {
 
@@ -265,7 +264,7 @@ wki_start_loop( FILE * ofile )
    fprintf(ofile,"    DO i=its, ite\n\n\n");
 }
 
-void
+int
 wki_end_loop( FILE * ofile )
 {
 
@@ -275,7 +274,7 @@ wki_end_loop( FILE * ofile )
 }
 
 
-void
+int
 wki_prelim( FILE * ofile )
 {
 
@@ -304,7 +303,7 @@ wki_prelim( FILE * ofile )
 }
 
 
-void
+int
 wki_one_d_vars( FILE * ofile,   knode_t * pp )
 {
 

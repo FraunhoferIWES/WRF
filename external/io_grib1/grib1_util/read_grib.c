@@ -49,13 +49,6 @@
 #include "gribfuncs.h"
 #include "gribsize.incl"
 #include "read_grib.h"
-#include "alloc_2d.h"
-
-#if defined(_WIN32)
-#include <io.h>
-#else
-#include <unistd.h>
-#endif
 
 /* Function Declarations */
 
@@ -2274,7 +2267,7 @@ int rg_setup_gribmap(GribParameters *gribmap, char filename[])
 
   gribmap->num_entries = idx;
 
-  fclose(fid);
+  close(fid);
   return 1;
 }
 

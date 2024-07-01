@@ -743,7 +743,7 @@ okay_to_w = .false.
           ALLOCATE( obuf( 4096 ) )
           ! DataHandle is provided as second element of reduced
           CALL int_gen_handle_header( obuf, obufsize, itypesize, &
-                                      reduced(2) , INT_IOCLOSE )
+                                      reduced(2) , int_ioclose )
 
           if(poll_servers) then 
              ! Once we're done closing, we need to tell the master
@@ -775,7 +775,7 @@ okay_to_w = .false.
         DO WHILE ( icurs .lt. obufsize ) ! {
           hdr_tag = get_hdr_tag( obuf ( icurs / itypesize ) )
           SELECT CASE ( hdr_tag )
-            CASE ( INT_FIELD )
+            CASE ( int_field )
               CALL int_get_write_field_header ( obuf(icurs/itypesize), hdrbufsize, itypesize, ftypesize,  &
                                                 DataHandle , DateStr , VarName , Dummy , FieldType , Comm , IOComm, &
                                                 DomainDesc , MemoryOrder , Stagger , DimNames ,              &
@@ -806,7 +806,7 @@ okay_to_w = .false.
                 call add_to_bufsize_for_field( VarName, chunksize )
                 icurs = icurs + chunksize
               ENDIF
-            CASE ( INT_OPEN_FOR_WRITE_COMMIT )  ! only one per group of tasks
+            CASE ( int_open_for_write_commit )  ! only one per group of tasks
               hdrbufsize = obuf(icurs/itypesize)
               IF (num_commit_messages.EQ.0) THEN
                 call add_to_bufsize_for_field( 'COMMIT', hdrbufsize )
@@ -851,14 +851,14 @@ okay_to_w = .false.
 !      call to collect_on_comm: 1 bona fide output record from server task
 !      0 and noops from the rest.
 
-              IF ((hdr_tag.EQ.INT_NOOP.AND.mytask_local.NE.0.AND.num_noops.LE.0)  &
-                  .OR.hdr_tag.NE.INT_NOOP) THEN
+              IF ((hdr_tag.EQ.int_noop.AND.mytask_local.NE.0.AND.num_noops.LE.0)  &
+                  .OR.hdr_tag.NE.int_noop) THEN
                 write(VarName,'(I5.5)')vid 
 !write(0,*) 'X-2', hdrbufsize, get_hdr_tag( obuf ( icurs / itypesize ) ) , get_hdr_rec_size( obuf ( icurs / itypesize ) ), TRIM(VarName)
                 call add_to_bufsize_for_field( VarName, hdrbufsize )
                 vid = vid+1
               ENDIF
-              IF ( hdr_tag .EQ. INT_NOOP ) num_noops = num_noops + 1
+              IF ( hdr_tag .EQ. int_noop ) num_noops = num_noops + 1
               icurs = icurs + hdrbufsize
           END SELECT
         ENDDO ! }
@@ -874,7 +874,7 @@ okay_to_w = .false.
 !write(0,*) 'A icurs ', icurs, ' obufsize ', obufsize
           hdr_tag = get_hdr_tag( obuf ( icurs / itypesize ) )
           SELECT CASE ( hdr_tag )
-            CASE ( INT_FIELD )
+            CASE ( int_field )
               CALL int_get_write_field_header ( obuf(icurs/itypesize), hdrbufsize, itypesize, ftypesize,  &
                                                 DataHandle , DateStr , VarName , Dummy , FieldType , Comm , IOComm, &
                                                 DomainDesc , MemoryOrder , Stagger , DimNames ,              &
@@ -902,7 +902,7 @@ okay_to_w = .false.
                 call store_piece_of_field( obuf(icurs/itypesize), VarName, chunksize )
                 icurs = icurs + chunksize
               ENDIF
-            CASE ( INT_OPEN_FOR_WRITE_COMMIT )  ! only one per group of tasks
+            CASE ( int_open_for_write_commit )  ! only one per group of tasks
               hdrbufsize = obuf(icurs/itypesize)
               IF (num_commit_messages.EQ.0) THEN
                 call store_piece_of_field( obuf(icurs/itypesize), 'COMMIT', hdrbufsize )
@@ -911,14 +911,14 @@ okay_to_w = .false.
               icurs = icurs + hdrbufsize
             CASE DEFAULT
               hdrbufsize = obuf(icurs/itypesize)
-              IF ((hdr_tag.EQ.INT_NOOP.AND.mytask_local.NE.0.AND.num_noops.LE.0)  &
-                  .OR.hdr_tag.NE.INT_NOOP) THEN
+              IF ((hdr_tag.EQ.int_noop.AND.mytask_local.NE.0.AND.num_noops.LE.0)  &
+                  .OR.hdr_tag.NE.int_noop) THEN
                 write(VarName,'(I5.5)')vid 
 !write(0,*) 'A-2b', hdrbufsize, get_hdr_tag( obuf ( icurs / itypesize ) ) , get_hdr_rec_size( obuf ( icurs / itypesize ) ), TRIM(VarName)
                 call store_piece_of_field( obuf(icurs/itypesize), VarName, hdrbufsize )
                 vid = vid+1
               ENDIF
-              IF ( hdr_tag .EQ. INT_NOOP ) num_noops = num_noops + 1
+              IF ( hdr_tag .EQ. int_noop ) num_noops = num_noops + 1
               icurs = icurs + hdrbufsize
           END SELECT
         ENDDO !}
@@ -981,12 +981,12 @@ okay_to_w = .false.
 ! actually quite easy.  "Noop" requests exist to help avoid race conditions.  
 ! In some cases, only one compute task will everything about a request so 
 ! other compute tasks send "noop" requests.  
-                CASE ( INT_NOOP )
+                CASE ( int_noop )
                   CALL int_get_noop_header( bigbuf(icurs/itypesize), hdrbufsize, itypesize )
                   icurs = icurs + hdrbufsize
 
 ! The I/O server "root" handles the "put_dom_td_real" request.
-                CASE ( INT_DOM_TD_REAL )
+                CASE ( int_dom_td_real )
                   CALL mpi_type_size( MPI_REAL, ftypesize, ierr )
                   ALLOCATE( RData( bigbuf(icurs/itypesize + 4 ) ) )      ! 5 is the count of data items for this record ; defined in collect_on_comm.c
                   CALL int_get_td_header( bigbuf(icurs/itypesize:), hdrbufsize, itypesize, ftypesize, &
@@ -1020,8 +1020,8 @@ okay_to_w = .false.
 
                   DEALLOCATE( RData )
 ! The I/O server "root" handles the "put_dom_ti_real" request.
-                CASE ( INT_DOM_TI_REAL )
-!write(0,*)' INT_DOM_TI_REAL '
+                CASE ( int_dom_ti_real )
+!write(0,*)' int_dom_ti_real '
                   CALL mpi_type_size( MPI_REAL, ftypesize, ierr )
                   ALLOCATE( RData( bigbuf(icurs/itypesize + 4 ) ) )      ! 5 is the count of data items for this record ; defined in collect_on_comm.c
                   CALL int_get_ti_header( bigbuf(icurs/itypesize:), hdrbufsize, itypesize, ftypesize, &
@@ -1057,8 +1057,8 @@ okay_to_w = .false.
                   DEALLOCATE( RData )
 
 ! The I/O server "root" handles the "put_dom_td_integer" request.
-                CASE ( INT_DOM_TD_INTEGER )
-!write(0,*)' INT_DOM_TD_INTEGER '
+                CASE ( int_dom_td_integer )
+!write(0,*)' int_dom_td_integer '
                   CALL mpi_type_size( MPI_INTEGER, ftypesize, ierr )
                   ALLOCATE( IData( bigbuf(icurs/itypesize + 4 ) ) )      ! 5 is the count of data items for this record ; defined in collect_on_comm.c
                   CALL int_get_td_header( bigbuf(icurs/itypesize:), hdrbufsize, itypesize, ftypesize, &
@@ -1093,8 +1093,8 @@ okay_to_w = .false.
                   DEALLOCATE( IData )
 
 ! The I/O server "root" handles the "put_dom_ti_integer" request.
-                CASE ( INT_DOM_TI_INTEGER )
-!write(0,*)' INT_DOM_TI_INTEGER '
+                CASE ( int_dom_ti_integer )
+!write(0,*)' int_dom_ti_integer '
 
                   CALL mpi_type_size( MPI_INTEGER, ftypesize, ierr )
                   ALLOCATE( IData( bigbuf(icurs/itypesize + 4 ) ) )      ! 5 is the count of data items for this record ; defined in collect_on_comm.c
@@ -1131,8 +1131,8 @@ okay_to_w = .false.
                   DEALLOCATE( IData)
  
 ! The I/O server "root" handles the "set_time" request.
-                CASE ( INT_SET_TIME )
-!write(0,*)' INT_SET_TIME '
+                CASE ( int_set_time )
+!write(0,*)' int_set_time '
                   CALL int_get_ti_header_char( bigbuf(icurs/itypesize), hdrbufsize, itypesize, &
                                                DataHandle, Element, VarName, CData, code )
                   SELECT CASE (use_package(io_form(DataHandle)))
@@ -1147,7 +1147,7 @@ okay_to_w = .false.
                   icurs = icurs + hdrbufsize
 
 ! The I/O server "root" handles the "put_dom_ti_char" request.
-                CASE ( INT_DOM_TI_CHAR )
+                CASE ( int_dom_ti_char )
 !write(0,*)' before int_get_ti_header_char '
                   CALL int_get_ti_header_char( bigbuf(icurs/itypesize), hdrbufsize, itypesize, &
                                                DataHandle, Element, VarName, CData, code )
@@ -1181,8 +1181,8 @@ okay_to_w = .false.
                   icurs = icurs + hdrbufsize
 
 ! The I/O server "root" handles the "put_var_ti_char" request.
-                CASE ( INT_VAR_TI_CHAR )
-!write(0,*)' INT_VAR_TI_CHAR '
+                CASE ( int_var_ti_char )
+!write(0,*)' int_var_ti_char '
                   CALL int_get_ti_header_char( bigbuf(icurs/itypesize), hdrbufsize, itypesize, &
                                                DataHandle, Element, VarName, CData, code )
 
@@ -1213,12 +1213,12 @@ okay_to_w = .false.
 
                   icurs = icurs + hdrbufsize
 
-                CASE ( INT_IOEXIT )
+                CASE ( int_ioexit )
 ! ioexit is now handled by sending negative message length to server
                   CALL wrf_error_fatal( &
-                         "quilt: should have handled INT_IOEXIT already")
+                         "quilt: should have handled int_ioexit already")
 ! The I/O server "root" handles the "ioclose" request.
-                CASE ( INT_IOCLOSE )
+                CASE ( int_ioclose )
                   CALL int_get_handle_header( bigbuf(icurs/itypesize), hdrbufsize, itypesize, &
                                               DataHandle , code )
                   icurs = icurs + hdrbufsize
@@ -1281,17 +1281,17 @@ okay_to_w = .false.
                   ENDIF
 
 ! The I/O server "root" handles the "open_for_write_begin" request.
-                CASE ( INT_OPEN_FOR_WRITE_BEGIN )
+                CASE ( int_open_for_write_begin )
 
                   CALL int_get_ofwb_header( bigbuf(icurs/itypesize), hdrbufsize, itypesize, &
                                             FileName,SysDepInfo,io_form_arg,DataHandle )
 
-!write(0,*)' INT_OPEN_FOR_WRITE_BEGIN itypesize ',itypesize,' itypesize ',itypesize
-!write(0,*)' INT_OPEN_FOR_WRITE_BEGIN icurs ', icurs, hdrbufsize
-!JMDEBUGwrite(0,*)' INT_OPEN_FOR_WRITE_BEGIN FileName ',TRIM(FileName) , ' DataHandle ', DataHandle
-!write(0,*)' INT_OPEN_FOR_WRITE_BEGIN SysDepInfo ',TRIM(SysDepInfo) 
+!write(0,*)' int_open_for_write_begin itypesize ',itypesize,' itypesize ',itypesize
+!write(0,*)' int_open_for_write_begin icurs ', icurs, hdrbufsize
+!JMDEBUGwrite(0,*)' int_open_for_write_begin FileName ',TRIM(FileName) , ' DataHandle ', DataHandle
+!write(0,*)' int_open_for_write_begin SysDepInfo ',TRIM(SysDepInfo) 
                   icurs = icurs + hdrbufsize
-!write(0,*)' INT_OPEN_FOR_WRITE_BEGIN new icurs,tag,size ', icurs, get_hdr_tag( bigbuf(icurs/itypesize) ),get_hdr_rec_size( bigbuf(icurs/itypesize) )
+!write(0,*)' int_open_for_write_begin new icurs,tag,size ', icurs, get_hdr_tag( bigbuf(icurs/itypesize) ),get_hdr_rec_size( bigbuf(icurs/itypesize) )
                 
                   io_form(DataHandle) = io_form_arg
 
@@ -1327,14 +1327,14 @@ okay_to_w = .false.
 ! In this case, the "okay_to_commit" is simply set to .true. so "write_field"
 ! requests will initiate writes to disk.  Actual commit will be done after
 ! all requests in this batch have been handled.
-                CASE ( INT_OPEN_FOR_WRITE_COMMIT )
+                CASE ( int_open_for_write_commit )
 
                   CALL int_get_handle_header( bigbuf(icurs/itypesize), hdrbufsize, itypesize, &
                                               DataHandle , code )
                   icurs = icurs + hdrbufsize
                   okay_to_commit(DataHandle) = .true.
 
-! The I/O server "root" handles the "write_field" (INT_FIELD) request.
+! The I/O server "root" handles the "write_field" (int_field) request.
 ! If okay_to_write(DataHandle) is .true. then the patch in the
 ! header (bigbuf) is written to a globally-sized internal output buffer via
 ! the call to store_patch_in_outbuf().  Note that this is where the actual
@@ -1342,9 +1342,9 @@ okay_to_w = .false.
 ! okay_to_write(DataHandle) is .false. then external I/O package interfaces
 ! are called to write metadata for I/O formats that support native metadata.
 !
-! NOTE that the I/O server "root" will only see write_field (INT_FIELD)
+! NOTE that the I/O server "root" will only see write_field (int_field)
 ! requests AFTER an "iosync" request.
-                CASE ( INT_FIELD )
+                CASE ( int_field )
                   CALL mpi_type_size( MPI_INTEGER, ftypesize, ierr )
                   CALL int_get_write_field_header ( bigbuf(icurs/itypesize), hdrbufsize, itypesize, ftypesize,  &
                                                     DataHandle , DateStr , VarName , Dummy , FieldType , Comm , IOComm, &
@@ -1352,7 +1352,7 @@ okay_to_w = .false.
                                                     DomainStart , DomainEnd ,                                    &
                                                     MemoryStart , MemoryEnd ,                                    &
                                                     PatchStart , PatchEnd )
-!write(0,*)' INT_FIELD ',TRIM(VarName),DataHandle,okay_to_write(DataHandle)
+!write(0,*)' int_field ',TRIM(VarName),DataHandle,okay_to_write(DataHandle)
                   icurs = icurs + hdrbufsize
 
                   IF ( okay_to_write(DataHandle) ) THEN
@@ -1418,7 +1418,7 @@ okay_to_w = .false.
                         Status = 0
                     END SELECT
                   ENDIF
-                CASE ( INT_IOSYNC )
+                CASE ( int_iosync )
                   CALL int_get_handle_header( bigbuf(icurs/itypesize), hdrbufsize, itypesize, &
                                             DataHandle , code )
                   icurs = icurs + hdrbufsize
@@ -1436,7 +1436,7 @@ okay_to_w = .false.
 ! (via a call to store_patch_in_outbuf()) then call write_outbuf() to write
 ! them to disk now.
 ! NOTE that the I/O server "root" will only have called
-! store_patch_in_outbuf() when handling write_field (INT_FIELD)
+! store_patch_in_outbuf() when handling write_field (int_field)
 ! commands which only arrive AFTER an "iosync" command.
 !              CALL start_timing
               CALL write_outbuf ( handle(DataHandle), use_package(io_form(DataHandle))) 
@@ -1745,7 +1745,7 @@ okay_to_w = .false.
           ALLOCATE( obuf( 4096 ) )
           ! DataHandle is provided as second element of reduced
           CALL int_gen_handle_header( obuf, obufsize, itypesize, &
-                                      reduced(2) , INT_IOCLOSE )
+                                      reduced(2) , int_ioclose )
         ENDIF
 
 !write(0,*)'calling init_store_piece_of_field'
@@ -1772,7 +1772,7 @@ okay_to_w = .false.
         DO WHILE ( icurs .lt. obufsize ) ! {
           hdr_tag = get_hdr_tag( obuf ( icurs / itypesize ) )
           SELECT CASE ( hdr_tag )
-            CASE ( INT_FIELD )
+            CASE ( int_field )
               CALL int_get_write_field_header ( obuf(icurs/itypesize), hdrbufsize, itypesize, ftypesize,  &
                                                 DataHandle , DateStr , VarName , Dummy , FieldType , Comm , IOComm, &
                                                 DomainDesc , MemoryOrder , Stagger , DimNames ,              &
@@ -1803,7 +1803,7 @@ okay_to_w = .false.
                 call add_to_bufsize_for_field( VarName, chunksize )
                 icurs = icurs + chunksize
               ENDIF
-            CASE ( INT_OPEN_FOR_WRITE_COMMIT )  ! only one per group of tasks
+            CASE ( int_open_for_write_commit )  ! only one per group of tasks
               hdrbufsize = obuf(icurs/itypesize)
               IF (num_commit_messages.EQ.0) THEN
                 call add_to_bufsize_for_field( 'COMMIT', hdrbufsize )
@@ -1841,13 +1841,13 @@ okay_to_w = .false.
 !   5. Logic below does not allow any noop records through since each IO 
 !      server task now receives a valid record (from the 'compute-group master'
 !      when doing replicated output
-              IF (hdr_tag.NE.INT_NOOP) THEN
+              IF (hdr_tag.NE.int_noop) THEN
                 write(VarName,'(I5.5)')vid 
 !write(0,*) 'X-2', hdrbufsize, get_hdr_tag( obuf ( icurs / itypesize ) ) , get_hdr_rec_size( obuf ( icurs / itypesize ) ), TRIM(VarName)
                 call add_to_bufsize_for_field( VarName, hdrbufsize )
                 vid = vid+1
               ENDIF
-              IF ( hdr_tag .EQ. INT_NOOP ) num_noops = num_noops + 1
+              IF ( hdr_tag .EQ. int_noop ) num_noops = num_noops + 1
               icurs = icurs + hdrbufsize
 
           END SELECT
@@ -1864,7 +1864,7 @@ okay_to_w = .false.
 !write(0,*) 'A icurs ', icurs, ' obufsize ', obufsize
           hdr_tag = get_hdr_tag( obuf ( icurs / itypesize ) )
           SELECT CASE ( hdr_tag )
-            CASE ( INT_FIELD )
+            CASE ( int_field )
               CALL int_get_write_field_header ( obuf(icurs/itypesize), hdrbufsize, itypesize, ftypesize,  &
                                                 DataHandle , DateStr , VarName , Dummy , FieldType , Comm , IOComm, &
                                                 DomainDesc , MemoryOrder , Stagger , DimNames ,              &
@@ -1892,7 +1892,7 @@ okay_to_w = .false.
                 icurs = icurs + chunksize
 !write(0,*) 'A-1a',TRIM(VarName),' icurs ',icurs,PatchStart(1:3),PatchEnd(1:3)
               ENDIF
-            CASE ( INT_OPEN_FOR_WRITE_COMMIT )  ! only one per group of tasks
+            CASE ( int_open_for_write_commit )  ! only one per group of tasks
               hdrbufsize = obuf(icurs/itypesize)
               IF (num_commit_messages.EQ.0) THEN
                 call store_piece_of_field( obuf(icurs/itypesize), 'COMMIT', hdrbufsize )
@@ -1901,14 +1901,14 @@ okay_to_w = .false.
               icurs = icurs + hdrbufsize
             CASE DEFAULT
               hdrbufsize = obuf(icurs/itypesize)
-              IF (hdr_tag.NE.INT_NOOP) THEN
+              IF (hdr_tag.NE.int_noop) THEN
 
                 write(VarName,'(I5.5)')vid 
 !write(0,*) 'A-2b', hdrbufsize, get_hdr_tag( obuf ( icurs / itypesize ) ) , get_hdr_rec_size( obuf ( icurs / itypesize ) ), TRIM(VarName)
                 call store_piece_of_field( obuf(icurs/itypesize), VarName, hdrbufsize )
                 vid = vid+1
               ENDIF
-              IF ( hdr_tag .EQ. INT_NOOP ) num_noops = num_noops + 1
+              IF ( hdr_tag .EQ. int_noop ) num_noops = num_noops + 1
               icurs = icurs + hdrbufsize
           END SELECT
        ENDDO !} while(icurs < obufsize)
@@ -1942,13 +1942,13 @@ okay_to_w = .false.
               SELECT CASE ( get_hdr_tag( obuf(icurs/itypesize) ) )
 ! The I/O server handles the "noop" (do nothing) request.  This is 
 ! actually quite easy.  "Noop" requests exist to help avoid race conditions.  
-                CASE ( INT_NOOP )
+                CASE ( int_noop )
                   CALL int_get_noop_header( obuf(icurs/itypesize), &
                                             hdrbufsize, itypesize )
                   icurs = icurs + hdrbufsize
 
 ! The I/O server "root" handles the "put_dom_td_real" request.
-                CASE ( INT_DOM_TD_REAL )
+                CASE ( int_dom_td_real )
                   CALL mpi_type_size( MPI_REAL, ftypesize, ierr )
                   ALLOCATE( RData( obuf(icurs/itypesize + 4 ) ) )      ! 5 is the count of data items for this record ; defined in collect_on_comm.c
                   CALL int_get_td_header( obuf(icurs/itypesize:), hdrbufsize, itypesize, ftypesize, &
@@ -1986,7 +1986,7 @@ okay_to_w = .false.
 
                   DEALLOCATE( RData )
 ! Every I/O server handles the "put_dom_ti_real" request.
-                CASE ( INT_DOM_TI_REAL )
+                CASE ( int_dom_ti_real )
 
                   CALL mpi_type_size( MPI_REAL, ftypesize, ierr )
                   ALLOCATE( RData( obuf(icurs/itypesize + 4 ) ) )      ! 5 is the count of data items for this record ; defined in collect_on_comm.c
@@ -2026,7 +2026,7 @@ okay_to_w = .false.
                   DEALLOCATE( RData )
 
 ! Every I/O server handles the "put_dom_td_integer" request.
-                CASE ( INT_DOM_TD_INTEGER )
+                CASE ( int_dom_td_integer )
 
                   CALL mpi_type_size( MPI_INTEGER, ftypesize, ierr )
                   ALLOCATE( IData( obuf(icurs/itypesize + 4 ) ) )      ! 5 is the count of data items for this record ; defined in collect_on_comm.c
@@ -2066,7 +2066,7 @@ okay_to_w = .false.
                    DEALLOCATE( IData )
 
 ! Every I/O server handles the "put_dom_ti_integer" request.
-                CASE ( INT_DOM_TI_INTEGER )
+                CASE ( int_dom_ti_integer )
 
                   CALL mpi_type_size( MPI_INTEGER, ftypesize, ierr )
                   ALLOCATE( IData( obuf(icurs/itypesize + 4 ) ) )      ! 5 is the count of data items for this record ; defined in collect_on_comm.c
@@ -2106,7 +2106,7 @@ okay_to_w = .false.
                   DEALLOCATE( IData)
  
 ! Every I/O server  handles the "set_time" request.
-                CASE ( INT_SET_TIME )
+                CASE ( int_set_time )
 
                   CALL int_get_ti_header_char( obuf(icurs/itypesize), hdrbufsize, itypesize, &
                                                DataHandle, Element, VarName, CData, code )
@@ -2122,7 +2122,7 @@ okay_to_w = .false.
                   icurs = icurs + hdrbufsize
 
 ! Every I/O server handles the "put_dom_ti_char" request.
-                CASE ( INT_DOM_TI_CHAR )
+                CASE ( int_dom_ti_char )
 
                   CALL int_get_ti_header_char( obuf(icurs/itypesize), hdrbufsize, itypesize, &
                                                DataHandle, Element, VarName, CData, code )
@@ -2159,7 +2159,7 @@ okay_to_w = .false.
                   icurs = icurs + hdrbufsize
 
 ! Every I/O server handles the "put_var_ti_char" request.
-                CASE ( INT_VAR_TI_CHAR )
+                CASE ( int_var_ti_char )
 
                   CALL int_get_ti_header_char( obuf(icurs/itypesize), hdrbufsize, itypesize, &
                                                DataHandle, Element, VarName, CData, code )
@@ -2195,12 +2195,12 @@ okay_to_w = .false.
 
                   icurs = icurs + hdrbufsize
 
-                CASE ( INT_IOEXIT )
+                CASE ( int_ioexit )
 ! ioexit is now handled by sending negative message length to server
                   CALL wrf_error_fatal( &
-                         "quilt: should have handled INT_IOEXIT already")
+                         "quilt: should have handled int_ioexit already")
 ! Every I/O server handles the "ioclose" request.
-                CASE ( INT_IOCLOSE )
+                CASE ( int_ioclose )
                   CALL int_get_handle_header( obuf(icurs/itypesize), hdrbufsize, itypesize, &
                                               DataHandle , code )
                   icurs = icurs + hdrbufsize
@@ -2256,17 +2256,17 @@ okay_to_w = .false.
                   ENDIF
 
 ! Every I/O server handles the "open_for_write_begin" request.
-                CASE ( INT_OPEN_FOR_WRITE_BEGIN )
+                CASE ( int_open_for_write_begin )
 
                   CALL int_get_ofwb_header( obuf(icurs/itypesize), hdrbufsize, itypesize, &
                                             FileName,SysDepInfo,io_form_arg,DataHandle )
 
-!write(0,*)' INT_OPEN_FOR_WRITE_BEGIN itypesize ',itypesize,' itypesize ',itypesize
-!write(0,*)' INT_OPEN_FOR_WRITE_BEGIN icurs ', icurs, hdrbufsize
-!JMDEBUGwrite(0,*)' INT_OPEN_FOR_WRITE_BEGIN FileName ',TRIM(FileName) , ' DataHandle ', DataHandle
-!write(0,*)' INT_OPEN_FOR_WRITE_BEGIN SysDepInfo ',TRIM(SysDepInfo) 
+!write(0,*)' int_open_for_write_begin itypesize ',itypesize,' itypesize ',itypesize
+!write(0,*)' int_open_for_write_begin icurs ', icurs, hdrbufsize
+!JMDEBUGwrite(0,*)' int_open_for_write_begin FileName ',TRIM(FileName) , ' DataHandle ', DataHandle
+!write(0,*)' int_open_for_write_begin SysDepInfo ',TRIM(SysDepInfo) 
                   icurs = icurs + hdrbufsize
-!write(0,*)' INT_OPEN_FOR_WRITE_BEGIN new icurs,tag,size ', icurs, get_hdr_tag( bigbuf(icurs/itypesize) ),get_hdr_rec_size( bigbuf(icurs/itypesize) )
+!write(0,*)' int_open_for_write_begin new icurs,tag,size ', icurs, get_hdr_tag( bigbuf(icurs/itypesize) ),get_hdr_rec_size( bigbuf(icurs/itypesize) )
                 
                   io_form(DataHandle) = io_form_arg
 
@@ -2304,25 +2304,25 @@ okay_to_w = .false.
 
 ! Every I/O server handles the "open_for_write_commit" request.
 ! In this case, the "okay_to_commit" is simply set to .true. so "write_field"
-! (INT_FIELD) requests will initiate writes to disk.  Actual commit will be done after
+! (int_field) requests will initiate writes to disk.  Actual commit will be done after
 ! all requests in this batch have been handled.
-                CASE ( INT_OPEN_FOR_WRITE_COMMIT )
+                CASE ( int_open_for_write_commit )
 
                   CALL int_get_handle_header( obuf(icurs/itypesize), hdrbufsize, itypesize, &
                                               DataHandle , code )
                   icurs = icurs + hdrbufsize
                   okay_to_commit(DataHandle) = .true.
 
-! Every I/O server handles the "write_field" (INT_FIELD) request.
+! Every I/O server handles the "write_field" (int_field) request.
 ! If okay_to_write(DataHandle) is .true. then the patch in the
 ! header (bigbuf) is written to disk using pNetCDF.  Note that this is where the actual
 ! "quilting" (reassembly of patches onto a full-size domain) is done.  If
 ! okay_to_write(DataHandle) is .false. then external I/O package interfaces
 ! are called to write metadata for I/O formats that support native metadata.
 !
-! NOTE that the I/O servers will only see write_field (INT_FIELD)
+! NOTE that the I/O servers will only see write_field (int_field)
 ! requests AFTER an "iosync" request.
-                CASE ( INT_FIELD )
+                CASE ( int_field )
                   CALL mpi_type_size( MPI_INTEGER, ftypesize, ierr )
                   CALL int_get_write_field_header ( obuf(icurs/itypesize), hdrbufsize, itypesize, ftypesize,  &
                                                     DataHandle , DateStr , VarName , Dummy , FieldType , Comm , IOComm, &
@@ -2330,7 +2330,7 @@ okay_to_w = .false.
                                                     DomainStart , DomainEnd ,                                    &
                                                     MemoryStart , MemoryEnd ,                                    &
                                                     PatchStart , PatchEnd )
-!write(0,*)' INT_FIELD ',TRIM(VarName),DataHandle,okay_to_write(DataHandle)
+!write(0,*)' int_field ',TRIM(VarName),DataHandle,okay_to_write(DataHandle)
                   icurs = icurs + hdrbufsize
 
                   IF ( okay_to_write(DataHandle) ) THEN
@@ -2445,7 +2445,7 @@ okay_to_w = .false.
                         Status = 0
                     END SELECT
                   ENDIF
-                CASE ( INT_IOSYNC )
+                CASE ( int_iosync )
                   CALL int_get_handle_header( obuf(icurs/itypesize), hdrbufsize, itypesize, &
                                             DataHandle , code )
                   icurs = icurs + hdrbufsize
@@ -2465,7 +2465,7 @@ okay_to_w = .false.
 ! (via a call to store_patch_in_outbuf_pnc()) then call write_outbuf_pnc() 
 ! to write them to disk now.
 ! NOTE that the I/O server will only have called
-! store_patch_in_outbuf() when handling write_field (INT_FIELD)
+! store_patch_in_outbuf() when handling write_field (int_field)
 ! commands which only arrive AFTER an "iosync" command.
 !              CALL start_timing
 #ifdef PNETCDF_QUILT
@@ -3088,7 +3088,7 @@ SUBROUTINE wrf_quilt_open_for_write_commit( DataHandle , Status )
 !ARP parallel IO
   IF(compute_group_master(1)) THEN
      CALL int_gen_handle_header( hdrbuf, hdrbufsize, itypesize, &
-                                 DataHandle, INT_OPEN_FOR_WRITE_COMMIT )
+                                 DataHandle, int_open_for_write_commit )
   ELSE
      CALL int_gen_noop_header( hdrbuf, hdrbufsize, itypesize )
   END IF
@@ -3096,7 +3096,7 @@ SUBROUTINE wrf_quilt_open_for_write_commit( DataHandle , Status )
 
   IF ( wrf_dm_on_monitor() ) THEN
      CALL int_gen_handle_header( hdrbuf, hdrbufsize, itypesize, &
-                                 DataHandle, INT_OPEN_FOR_WRITE_COMMIT )
+                                 DataHandle, int_open_for_write_commit )
   ELSE
      CALL int_gen_noop_header( hdrbuf, hdrbufsize, itypesize )
   ENDIF
@@ -3336,14 +3336,14 @@ SUBROUTINE wrf_quilt_ioclose ( DataHandle, Status )
 #ifdef PNETCDF_QUILT
   IF ( compute_group_master(1) )THEN
      CALL int_gen_handle_header( hdrbuf, hdrbufsize, itypesize, &
-                                 DataHandle, INT_IOCLOSE )
+                                 DataHandle, int_ioclose )
   ELSE
      CALL int_gen_noop_header( hdrbuf, hdrbufsize, itypesize )
   ENDIF
 #else
   IF ( wrf_dm_on_monitor() ) THEN
      CALL int_gen_handle_header( hdrbuf, hdrbufsize, itypesize, &
-                                 DataHandle , INT_IOCLOSE )
+                                 DataHandle , int_ioclose )
   ELSE
      CALL int_gen_noop_header( hdrbuf, hdrbufsize, itypesize )
   ENDIF
@@ -3420,7 +3420,7 @@ SUBROUTINE wrf_quilt_ioexit( Status )
 !ARP Send the ioexit message just once to each IOServer when using parallel IO
   IF( compute_group_master(1) ) THEN
      CALL int_gen_handle_header( hdrbuf, hdrbufsize, itypesize, &
-                                 DataHandle, INT_IOEXIT )
+                                 DataHandle, int_ioexit )
   ELSE
      CALL int_gen_noop_header( hdrbuf, hdrbufsize, itypesize )
   END IF
@@ -3428,7 +3428,7 @@ SUBROUTINE wrf_quilt_ioexit( Status )
 
   IF ( wrf_dm_on_monitor() ) THEN
      CALL int_gen_handle_header( hdrbuf, hdrbufsize, itypesize, &
-                                 DataHandle , INT_IOEXIT )  ! Handle is dummy
+                                 DataHandle , int_ioexit )  ! Handle is dummy
   ELSE
      CALL int_gen_noop_header( hdrbuf, hdrbufsize, itypesize )
   ENDIF
@@ -3532,14 +3532,14 @@ SUBROUTINE wrf_quilt_set_time ( DataHandle, Data,  Status )
 ! can't tell that's what they are on the IO servers themselves - therefore use
 ! the compute_group_master process.
          CALL int_gen_ti_header_char( hdrbuf, hdrbufsize, itypesize, &
-                                      DataHandle, "TIMESTAMP", "", Data, INT_SET_TIME )
+                                      DataHandle, "TIMESTAMP", "", Data, int_set_time )
       ELSE
          CALL int_gen_noop_header( hdrbuf, hdrbufsize, itypesize )
       END IF
 #else
       IF ( wrf_dm_on_monitor() ) THEN
          CALL int_gen_ti_header_char( hdrbuf, hdrbufsize, itypesize, &
-                                      DataHandle, "TIMESTAMP", "", Data, INT_SET_TIME )
+                                      DataHandle, "TIMESTAMP", "", Data, int_set_time )
       ELSE
          CALL int_gen_noop_header( hdrbuf, hdrbufsize, itypesize )
       ENDIF
@@ -3648,14 +3648,14 @@ SUBROUTINE wrf_quilt_put_dom_ti_real ( DataHandle,Element,   Data, Count,  Statu
 #ifdef PNETCDF_QUILT
       IF ( compute_group_master(1) ) THEN
          CALL int_gen_ti_header( hdrbuf, hdrbufsize, itypesize, typesize, &
-                                 DataHandle, locElement, Data, Count, INT_DOM_TI_REAL )
+                                 DataHandle, locElement, Data, Count, int_dom_ti_real )
       ELSE
          CALL int_gen_noop_header( hdrbuf, hdrbufsize, itypesize )
       ENDIF
 #else
       IF ( wrf_dm_on_monitor() ) THEN
          CALL int_gen_ti_header( hdrbuf, hdrbufsize, itypesize, typesize, &
-                                 DataHandle, locElement, Data, Count, INT_DOM_TI_REAL )
+                                 DataHandle, locElement, Data, Count, int_dom_ti_real )
       ELSE
          CALL int_gen_noop_header( hdrbuf, hdrbufsize, itypesize )
       ENDIF
@@ -3806,7 +3806,7 @@ SUBROUTINE wrf_quilt_put_dom_ti_integer ( DataHandle,Element,   Data, Count,  St
       IF ( compute_group_master(1) )THEN
          CALL int_gen_ti_header( hdrbuf, hdrbufsize, itypesize, typesize, &
                                  DataHandle, locElement, Data, Count,     &
-                                 INT_DOM_TI_INTEGER )
+                                 int_dom_ti_integer )
       ELSE
          CALL int_gen_noop_header( hdrbuf, hdrbufsize, itypesize )
       ENDIF
@@ -3814,7 +3814,7 @@ SUBROUTINE wrf_quilt_put_dom_ti_integer ( DataHandle,Element,   Data, Count,  St
       IF ( wrf_dm_on_monitor() ) THEN
          CALL int_gen_ti_header( hdrbuf, hdrbufsize, itypesize, typesize, &
                                  DataHandle, locElement, Data, Count,     &
-                                 INT_DOM_TI_INTEGER )
+                                 int_dom_ti_integer )
       ELSE
          CALL int_gen_noop_header( hdrbuf, hdrbufsize, itypesize )
       ENDIF
@@ -3966,14 +3966,14 @@ SUBROUTINE wrf_quilt_put_dom_ti_char ( DataHandle, Element,  Data,  Status )
       IF(compute_group_master(1))THEN
          CALL int_gen_ti_header_char( hdrbuf, hdrbufsize, itypesize, &
                                       DataHandle, Element, "", Data, &
-                                      INT_DOM_TI_CHAR )
+                                      int_dom_ti_char )
       ELSE
          CALL int_gen_noop_header( hdrbuf, hdrbufsize, itypesize )
       END IF
 #else
       IF ( wrf_dm_on_monitor() ) THEN
          CALL int_gen_ti_header_char( hdrbuf, hdrbufsize, itypesize, &
-                                      DataHandle, Element, "", Data, INT_DOM_TI_CHAR )
+                                      DataHandle, Element, "", Data, int_dom_ti_char )
       ELSE
          CALL int_gen_noop_header( hdrbuf, hdrbufsize, itypesize )
       ENDIF
@@ -4510,7 +4510,7 @@ SUBROUTINE wrf_quilt_put_var_ti_char ( DataHandle,Element,  Varname, Data,  Stat
       IF ( compute_group_master(1) ) THEN
          CALL int_gen_ti_header_char( hdrbuf, hdrbufsize, itypesize, &
                                       DataHandle, TRIM(Element),     &
-                                      TRIM(VarName), TRIM(Data), INT_VAR_TI_CHAR )
+                                      TRIM(VarName), TRIM(Data), int_var_ti_char )
       ELSE
          CALL int_gen_noop_header( hdrbuf, hdrbufsize, itypesize )
       ENDIF
@@ -4518,7 +4518,7 @@ SUBROUTINE wrf_quilt_put_var_ti_char ( DataHandle,Element,  Varname, Data,  Stat
       IF ( wrf_dm_on_monitor() ) THEN
          CALL int_gen_ti_header_char( hdrbuf, hdrbufsize, itypesize, &
                                       DataHandle, TRIM(Element),     &
-                                      TRIM(VarName), TRIM(Data), INT_VAR_TI_CHAR )
+                                      TRIM(VarName), TRIM(Data), int_var_ti_char )
       ELSE
          CALL int_gen_noop_header( hdrbuf, hdrbufsize, itypesize )
       ENDIF
@@ -4852,7 +4852,7 @@ SUBROUTINE wrf_quilt_write_field ( DataHandle , DateStr , VarName , Field , Fiel
 ! During a "real" write, this routine begins by allocating
 ! int_local_output_buffer if it has not already been allocated.  Sizes
 ! accumulated during "training" are used to determine how big
-! int_local_output_buffer must be.  This routine then stores "INT_FIELD"
+! int_local_output_buffer must be.  This routine then stores "int_field"
 ! headers and associated field data in int_local_output_buffer.  The contents
 ! of int_local_output_buffer are actually sent to the I/O quilt server in
 ! routine wrf_quilt_iosync().  This scheme allows output of multiple variables

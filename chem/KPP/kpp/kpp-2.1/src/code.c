@@ -32,7 +32,6 @@
 
 #include "gdata.h"
 #include "code.h"
-#include "scan.h"
 #include <time.h>
 #include <unistd.h>
 #include <string.h>
@@ -98,6 +97,7 @@ FILE * mex_funFile = 0;
 FILE * mex_jacFile = 0;
 FILE * mex_hessFile = 0;
 FILE * wrf_UpdateRconstFile = 0;
+
 
 FILE * currentFile;
 
@@ -193,7 +193,7 @@ char *p;
   p = outBuf;
   while( *p )
     *p++ &= ~0x80;
-  fprintf( currentFile, "%s", outBuf );
+  fprintf( currentFile, outBuf );
   outBuffer = outBuf;
   *outBuffer = 0;
 }
@@ -205,7 +205,7 @@ char *p;
   p = buf;
   while( *p )
     *p++ &= ~0x80;
-  fprintf( currentFile, "%s", buf );
+  fprintf( currentFile, buf );
 }
 
 void WriteDelim()

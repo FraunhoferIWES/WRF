@@ -247,6 +247,7 @@ CONTAINS
 
 !------------------------------------------------------------------
 !
+#if  ! ( NMM_CORE == 1 )
   if (config_flags%grid_fdda .eq. 0 .AND. config_flags%grid_sfdda .eq. 0) return
 
   IF (itimestep == 1) THEN
@@ -621,6 +622,7 @@ CONTAINS
 
    ENDIF
 
+#endif
 !
    END SUBROUTINE fddagd_driver
 END MODULE module_fddagd_driver

@@ -457,7 +457,7 @@ for (i=0; i<SpcNr; i++)
 }
 
 /*******************************************************************/                    
-void Postprocess( char * root )
+int Postprocess( char * root )
 {
 char buf[ 1024 ];
 char cmd[500];

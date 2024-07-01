@@ -6,7 +6,7 @@
 
 
 
-void
+int
 gen_kpp_args_to_Update_Rconst( )
 {
  FILE  * args_urc, * args_to_urc, * decls_urc; 

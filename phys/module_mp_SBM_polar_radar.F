@@ -6,11 +6,6 @@
          dummy = 1
       END SUBROUTINE SBM_polar_radar
       END MODULE module_mp_SBM_polar_radar
-
-! Stub module
-module scatt_tables
-end module scatt_tables
-
 #else
 !******************
 module scatt_tables

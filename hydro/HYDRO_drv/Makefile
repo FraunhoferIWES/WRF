@@ -1,17 +1,17 @@
-# Makefile
+# Makefile 
 #
 .SUFFIXES:
-.SUFFIXES: .o .F90
+.SUFFIXES: .o .F
 
 include ../macros
 
 OBJS = \
 	module_HYDRO_drv.o
-all:	$(OBJS)
+all:	$(OBJS) 
 
-.F90.o:
+.F.o:
 	@echo ""
-	$(COMPILER90) $(CPPINVOKE) $(CPPFLAGS) -o $(@) $(F90FLAGS) $(LDFLAGS) $(MODFLAG) -I$(NETCDFINC) -I../mod $(*).F90
+	$(COMPILER90) $(CPPINVOKE) $(CPPFLAGS) -o $(@) $(F90FLAGS) $(LDFLAGS) $(MODFLAG) -I$(NETCDFINC) -I../mod $(*).F
 	@echo ""
 	ar -r ../lib/libHYDRO.a $(@)
 	cp *.mod ../mod

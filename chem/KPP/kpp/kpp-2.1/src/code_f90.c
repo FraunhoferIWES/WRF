@@ -699,7 +699,7 @@ char buf[ 1000 ];
 }
 
 /*************************************************************************************************/
-void Use_F90( char *rootFileName )
+void Use_F90()
 { 
   WriteElm 	    = F90_WriteElm;
   WriteSymbol 	    = F90_WriteSymbol;  

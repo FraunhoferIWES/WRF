@@ -20,7 +20,7 @@ CONTAINS
                              , chem                              &
                              , th_phy , pi_phy , p_phy           &
                              , u_phy , v_phy                     &
-                             , dz8w , p8w , t8w , rho            &
+                             , dz8w , p8w , t8w , rho_phy , rho  &
                              , ids, ide, jds, jde, kds, kde      &
                              , ims, ime, jms, jme, kms, kme      &
                              , ips, ipe, jps, jpe, kps, kpe      &
@@ -65,6 +65,7 @@ CONTAINS
                                               ,           dz8w  &
                                               ,            p8w  &
                                               ,            t8w  &
+                                              ,        rho_phy  &
                                               ,            rho
 
     ! Local

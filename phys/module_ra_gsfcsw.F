@@ -25,7 +25,6 @@ CONTAINS
                    ,aer_ra_feedback                               &
                    ,f_qv,f_qc,f_qr,f_qi,f_qs,f_qg,f_qndrop        &
                    ,coszen                                        & ! PAJ
-                   ,obscur                                        & ! amontornes-bcodina 2015/09 solar eclipses                                       
                    ,ids,ide, jds,jde, kds,kde                     & 
                    ,ims,ime, jms,jme, kms,kme                     &
                    ,its,ite, jts,jte, kts,kte                     ) 
@@ -108,10 +107,6 @@ CONTAINS
 ! 
    REAL, DIMENSION( ims:ime, jms:jme), INTENT(IN) :: COSZEN
 
-! amontornes-bcodina 2015/09 solar eclipses
-!  obscur --> degree of obscuration for solar eclipses prediction (2D)
-   REAL, DIMENSION( ims:ime, jms:jme ), INTENT(IN)  :: obscur
-   
 ! LOCAL VARS
  
    REAL, DIMENSION( its:ite ) ::                                  &
@@ -127,12 +122,7 @@ CONTAINS
 
    INTEGER, DIMENSION( its:ite ) ::                               &
                                                              ict, &
-                                                             icb 
-
-! amontornes-bcodina 2015/09 solar eclipses
-!  obscur --> degree of obscuration for solar eclipses prediction (one row)
-   REAL, DIMENSION( its:ite ) ::                                  &
-							obscur_row
+                                                             icb   
 
    REAL, DIMENSION( its:ite, kts-1:kte, 2 ) ::            taucld
 
@@ -765,8 +755,6 @@ CONTAINS
       do i = its,ite
 ! PAJ: Use cos zenith angle from the radiation driver:
          cosz(i)=coszen(i,j)
-! amontornes-bcodina 2015/09 solar eclipses :: save obscuration from for the current j
-         obscur_row(i)=obscur(i,j)
 !        xt24 = mod(xtime + radfrq * 0.5, 1440.)
 !        tloctm = GMT + xt24 / 60. + XLONG(i,j) / 15.
 !        hrang = 15. * (tloctm - 12.) * degrad
@@ -800,9 +788,7 @@ CONTAINS
           if (cosz(i) .lt. thresh) then
             flx(i,k) = 0.
           else
-            ! amontornes-bcodina 2015/09 solar eclipses: modified for considering the solar
-              !                             eclipse
-              flx(i,k) = flx(i,k) * SOLCON * cosz(i) * (1. - obscur_row(i) )
+            flx(i,k) = flx(i,k) * SOLCON * cosz(i)
           endif
         end do
       end do
@@ -824,9 +810,7 @@ CONTAINS
         if (cosz(i) .le. thresh) then
           RSWTOA(i,j) = 0.
         else
-	  ! amontornes-bcodina 2015/09 solar eclipses: modified for considering the solar
-          !                             eclipse
-          RSWTOA(i,j) = flx(i,kts) - flxd(i,kts) * SOLCON * cosz(i) * (1. - obscur_row(i) )
+          RSWTOA(i,j) = flx(i,kts) - flxd(i,kts) * SOLCON * cosz(i)
         endif
       end do
 !
@@ -836,9 +820,7 @@ CONTAINS
         if (cosz(i) .le. thresh) then
           GSW(i,j) = 0.
         else
-	  ! amontornes-bcodina 2015/09 solar eclipses: modified for considering the solar
-          !                             eclipse
-          GSW(i,j) = (1. - rsuvbm(i)) * flxd(i,kte+1) * SOLCON * cosz(i) * (1. - obscur_row(i) )
+          GSW(i,j) = (1. - rsuvbm(i)) * flxd(i,kte+1) * SOLCON * cosz(i)
         endif
       end do
 

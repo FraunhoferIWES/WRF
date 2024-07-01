@@ -30,8 +30,6 @@
 ******************************************************************************/
 
 
-#include <string.h>
-#include <math.h>
 #include "gdata.h"
 #include "code.h"
 #include "scan.h"
@@ -612,12 +610,11 @@ char buf1[100], buf2[100];
   if( VarNr == 0 ) return;
   
   if (useLang != MATLAB_LANG)  /* Matlab generates an additional file per function */
-  {
-    if ( useWRFConform ){
-         UseFile( integratorFile );}
-    else{
-         UseFile( functionFile ); }
-  }
+
+  if ( useWRFConform ) 
+       UseFile( integratorFile );
+  else
+       UseFile( functionFile ); 
 
   if ( useWRFConform ) 
     {
@@ -759,12 +756,11 @@ char buf1[100], buf2[100];
   if( VarNr == 0 ) return;
   
   if (useLang != MATLAB_LANG)  /* Matlab generates an additional file per function */
-  {
-    if ( useWRFConform ) {
-         UseFile( integratorFile ); }
-    else {
-         UseFile( functionFile ); }
-  }
+
+  if ( useWRFConform ) 
+       UseFile( integratorFile );
+  else
+       UseFile( functionFile ); 
 
   if ( useWRFConform ) 
     {
@@ -1103,14 +1099,12 @@ char buf1[100], buf2[100];
   if (useJacobian == JAC_OFF) return;
 
   if (useLang != MATLAB_LANG)  /* Matlab generates an additional file per function */
-  {
 
-      if ( useWRFConform ){
-       UseFile( integratorFile );}
-      else {
-       UseFile( jacobianFile );}
-  }
-
+      if ( useWRFConform )
+       UseFile( integratorFile );
+      else 
+       UseFile( jacobianFile );
+  
   if ( useWRFConform ){
    sprintf( buf1, "%s_Jac_SP", rootFileName );  
   Jac_SP  = DefFnc( buf1, 4,
@@ -1938,7 +1932,7 @@ char buf1[100];
   sprintf( buf1, "%s_KppSolve", rootFileName ); 
   }else{  
   UseFile( linalgFile );
-  sprintf( buf1, "%s_KppSolve", rootFileName );
+  sprintf( buf1, "KppSolve", rootFileName );
   }
 
   SOLVE = DefFnc( buf1, 2, "sparse back substitution");
@@ -2171,7 +2165,7 @@ int UPDATE_RCONST;
   F77_Inline("      INCLUDE '%s_Global.h'", rootFileName);
   MATLAB_Inline("global SUN TEMP RCONST");
   
-  if ( useLang==F77_LANG )
+  if ( (useLang==F77_LANG) )
       IncludeCode( "%s/util/UserRateLaws_FcnHeader", Home );
       
   NewLines(1);
@@ -3386,14 +3380,14 @@ case 't':
   break;
   
 default:
-  printf("\n Unrecognized option '%c' in GenerateF90Modules\n", where);
+  printf("\n Unrecognized option '%s' in GenerateF90Modules\n", where);
   break;
 }  
 }
 
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-void Generate( char *rootFileName )
+void Generate()
 {
 int i, j;
 int n;
@@ -3420,7 +3414,7 @@ int n;
                  break; 
     case MATLAB_LANG: Use_MATLAB( rootFileName ); 
                  break; 
-    default: printf("\n Language no '%d' unknown\n",useLang );		 
+    default: printf("\n Language no '%s' unknown\n",useLang );		 
   }
   printf("\nKPP is initializing the code generation.");
   InitGen();

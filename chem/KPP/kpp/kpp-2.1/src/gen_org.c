@@ -3075,7 +3075,7 @@ default:
 
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-void Generate( char *rootFileName )
+void Generate()
 {
 int i, j;
 int n;

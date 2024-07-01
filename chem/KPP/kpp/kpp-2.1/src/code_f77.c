@@ -529,7 +529,7 @@ char buf[ 1000 ];
 }
 
 /*************************************************************************************************/
-void Use_F( char *rootFileName )
+void Use_F()
 { 
   WriteElm 	    = F77_WriteElm;
   WriteSymbol 	    = F77_WriteSymbol;  

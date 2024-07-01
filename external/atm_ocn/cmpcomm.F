@@ -1,4 +1,4 @@
-#ifdef DM_PARALLEL
+#if defined( DM_PARALLEL ) 
       MODULE CMP_COMM
 
       implicit none

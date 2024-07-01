@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <string.h>
 
 #include "protos.h"
 #include "protos_kpp.h"

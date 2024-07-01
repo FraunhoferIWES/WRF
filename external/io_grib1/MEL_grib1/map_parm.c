@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include "dprints.h"	  /* for debug printing  */
 #include "grib_lookup.h"  /* PARM_DEFN */
 #include "gribfuncs.h"		/* prototypes */

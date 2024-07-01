@@ -14,7 +14,7 @@ include ../configure.wrf
 
 $(SOLVER)_wrf : wrf.o ../main/module_wrf_top.o
 	$(RANLIB) $(RLFLAGS) $(LIBWRFLIB)
-	$(LD) -o wrf.exe $(LDFLAGS) wrf.o ../main/module_wrf_top.o $(LIBWRFLIB) $(CMAQLIB) $(LIB) 
+	$(LD) -o wrf.exe $(LDFLAGS) wrf.o ../main/module_wrf_top.o $(LIBWRFLIB) $(LIB) 
 
 $(SOLVER)_wrfplus : wrf.o ../main/module_wrf_top.o
 	$(RANLIB) $(RLFLAGS) $(LIBWRFLIB)
@@ -38,8 +38,21 @@ convert_em : convert_em.o
 	$(RANLIB) $(RLFLAGS) $(LIBWRFLIB)
 	$(LD) -o convert_em.exe $(LDFLAGS) convert_em.o $(LIBWRFLIB) $(LIB)
 
+convert_nmm : convert_nmm.o
+	$(RANLIB) $(RLFLAGS) $(LIBWRFLIB)
+	$(FC) -o convert_nmm.exe $(LDFLAGS) convert_nmm.o $(LIBWRFLIB) $(LIB)
+
+real_nmm : real_nmm.o
+	( cd ../dyn_nmm ;  $(MAKE) module_initialize_real.o )
+	$(RANLIB) $(RLFLAGS) $(LIBWRFLIB)
+	$(FC) -o real_nmm.exe $(LDFLAGS) real_nmm.o $(LIBWRFLIB) $(LIB)
+
 module_initialize : ../dyn_$(SOLVER)/module_initialize_$(IDEAL_CASE).o
 #	( cd ../dyn_$(SOLVER) ;  $(MAKE) module_initialize_$(IDEAL_CASE).o )
+
+# add dependencies so parallel build works
+real_$(SOLVER).o ndown_$(SOLVER).o nup_$(SOLVER).o tc_$(SOLVER).o ideal_nmm.o ideal_em.o ideal.o: ../dyn_$(SOLVER)/module_initialize_$(IDEAL_CASE).o
+
 
 ## prevent real being compiled for OMP -- only for regtesting
 #$(SOLVER)_real : module_initialize real_$(SOLVER).o

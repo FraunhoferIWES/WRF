@@ -20,7 +20,7 @@ CONTAINS
                      GZ1OZ0,WSPD,BR,ISFFLX,DX,                     &
                      SVP1,SVP2,SVP3,SVPT0,EP1,EP2,                 &
                      KARMAN,EOMEG,STBOLT,                          &
-                     P1000mb,LAKEMASK,                             &
+                     P1000mb,                                      &
                      ids,ide, jds,jde, kds,kde,                    &
                      ims,ime, jms,jme, kms,kme,                    &
                      its,ite, jts,jte, kts,kte,                    &
@@ -136,15 +136,16 @@ CONTAINS
                 INTENT(IN   )               ::             MAVAIL, &
                                                              PBLH, &
                                                             XLAND, &
-                                                         LAKEMASK, &
                                                               TSK
 
+!
       REAL,     DIMENSION( ims:ime, jms:jme )                    , &
                 INTENT(INOUT)               ::             REGIME, &
                                                               HFX, &
                                                               QFX, &
                                                                LH, &
                                                           MOL,RMOL
+!m the following 5 are change to memory size
 !
       REAL,     DIMENSION( ims:ime, jms:jme )                    , &
                 INTENT(INOUT)   ::                 GZ1OZ0,WSPD,BR, &
@@ -243,7 +244,7 @@ CONTAINS
                 QSFC(ims,j),LH(ims,j),                             &
                 GZ1OZ0(ims,j),WSPD(ims,j),BR(ims,j),ISFFLX,DX2D,   &
                 SVP1,SVP2,SVP3,SVPT0,EP1,EP2,KARMAN,EOMEG,STBOLT,  &
-                P1000mb,LAKEMASK(ims,j),                           &
+                P1000mb,                                           &
                 ids,ide, jds,jde, kds,kde,                         &
                 ims,ime, jms,jme, kms,kme,                         &
                 its,ite, jts,jte, kts,kte                          &
@@ -268,7 +269,7 @@ CONTAINS
                      QSFC,LH,GZ1OZ0,WSPD,BR,ISFFLX,DX,             &
                      SVP1,SVP2,SVP3,SVPT0,EP1,EP2,                 &
                      KARMAN,EOMEG,STBOLT,                          &
-                     P1000mb,LAKEMASK,                             &
+                     P1000mb,                                      &
                      ids,ide, jds,jde, kds,kde,                    &
                      ims,ime, jms,jme, kms,kme,                    &
                      its,ite, jts,jte, kts,kte,                    &
@@ -279,7 +280,6 @@ CONTAINS
 !-------------------------------------------------------------------
       REAL,     PARAMETER     ::        XKA=2.4E-5
       REAL,     PARAMETER     ::        PRT=1.
-      REAL,     PARAMETER     ::        SALINITY_FACTOR=0.98
 
       INTEGER,  INTENT(IN )   ::        ids,ide, jds,jde, kds,kde, &
                                         ims,ime, jms,jme, kms,kme, &
@@ -296,7 +296,6 @@ CONTAINS
                 INTENT(IN   )               ::             MAVAIL, &
                                                              PBLH, &
                                                             XLAND, &
-                                                         LAKEMASK, &
                                                               TSK
 !
       REAL,     DIMENSION( ims:ime )                             , &
@@ -327,12 +326,13 @@ CONTAINS
 
       REAL,     DIMENSION( ims:ime )                             , &
                 INTENT(INOUT)   ::                                 &
-                                                         QSFC,QGH
+                                                              QGH
 
       REAL,     DIMENSION( ims:ime )                             , &
                 INTENT(OUT)     ::                        U10,V10, &
-                                                     TH2,T2,Q2,LH
+                                                TH2,T2,Q2,QSFC,LH
 
+                                    
       REAL,     INTENT(IN   )               ::   CP,G,ROVCP,R,XLV
 
       REAL,     DIMENSION( its:ite ),  INTENT(IN   )   ::      DX
@@ -455,9 +455,7 @@ CONTAINS
       DO 60 I=its,ite
         E1=SVP1*EXP(SVP2*(TGDSA(I)-SVPT0)/(TGDSA(I)-SVP3))                       
 !  for land points QSFC can come from previous time step
-!  the saturation vapor pressure for salty water is on average 2% lower
-        if(xland(i).gt.1.5 .and. lakemask(i).eq.0.) E1=E1*SALINITY_FACTOR
-        if(xland(i).gt.1.5.or.qsfc(i).le.0.0)QSFC(I)=EP2*E1/(PSFC(I)-E1)
+        if(xland(i).gt.1.5.or.qsfc(i).le.0.0)QSFC(I)=EP2*E1/(PSFC(I)-E1)                                                 
 ! QGH CHANGED TO USE LOWEST-LEVEL AIR TEMP CONSISTENT WITH MYJSFC CHANGE
 ! Q2SAT = QGH IN LSM
         E1=SVP1*EXP(SVP2*(T1D(I)-SVPT0)/(T1D(I)-SVP3))                       
@@ -897,7 +895,7 @@ CONTAINS
 !                                                                               
       DO 370 I=its,ite
         QFX(I)=FLQC(I)*(QSFC(I)-QX(I))                                     
-!       QFX(I)=AMAX1(QFX(I),0.)                                            
+        QFX(I)=AMAX1(QFX(I),0.)                                            
         LH(I)=XLV*QFX(I)
   370 CONTINUE                                                                 
                                                                                 
@@ -915,7 +913,7 @@ CONTAINS
 !         ENDIF
         ELSEIF(XLAND(I)-1.5.LT.0.)THEN                                       
           HFX(I)=FLHC(I)*(THGB(I)-THX(I))                                
-!         HFX(I)=AMAX1(HFX(I),-250.)                                       
+          HFX(I)=AMAX1(HFX(I),-250.)                                       
         ENDIF                                                                  
   400 CONTINUE                                                                 
 

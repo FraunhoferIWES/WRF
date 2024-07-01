@@ -20,7 +20,8 @@
 
 static char tfpmess[1024] ;
 
-int TASK_FOR_POINT ( int* i_p , int* j_p , int* ids_p, int* ide_p , int* jds_p, int* jde_p , int* npx_p , int* npy_p , int* Px_p, int* Py_p , int* minx_p, int* miny_p, int* ierr_p )
+TASK_FOR_POINT ( i_p , j_p , ids_p, ide_p , jds_p, jde_p , npx_p , npy_p , Px_p, Py_p , minx_p, miny_p, ierr_p )
+  int_p i_p , j_p , Px_p , Py_p , ids_p, ide_p , jds_p, jde_p , npx_p , npy_p, minx_p, miny_p, ierr_p ;
 {
   int i , j , ids, ide, jds, jde, npx, npy, minx, miny ;  /* inputs */
   int Px, Py ;                                            /* output */
@@ -123,7 +124,7 @@ int TASK_FOR_POINT ( int* i_p , int* j_p , int* ids_p, int* ide_p , int* jds_p, 
   *Py_p = Py ;
 }
 
-void TASK_FOR_POINT_MESSAGE()
+TASK_FOR_POINT_MESSAGE()
 {
   fprintf(stderr,"%s\n",tfpmess) ;
 }

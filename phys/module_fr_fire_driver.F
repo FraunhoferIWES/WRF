@@ -352,8 +352,7 @@ halo_fire_mag_sub
                  ips,ipe,kps,kpe,jps,jpe,          &
                  rho,dz8w,                         &
                  grid%burnt_area_dt,grid%fgip, &
-                 grid%tracer,config_flags%fire_tracer_smoke, &
-                 config_flags%fire_smk_scheme,config_flags%fire_smk_peak,config_flags%fire_smk_ext,config_flags%fire_tg_ub,grid%ht,z_at_w)
+                 grid%tracer,config_flags%fire_tracer_smoke)
      endif
 ! DME
       enddo

@@ -15246,7 +15246,6 @@ integer,external :: omp_get_thread_num
 !------------------------------------------------------------------
       SUBROUTINE RRTMG_LWRAD_FAST(                                &
                        rthratenlw,                                &
-                       rthratenlwc,                               &
                        lwupt, lwuptc, lwdnt, lwdntc,              &
                        lwupb, lwupbc, lwdnb, lwdnbc,              &
 !                      lwupflx, lwupflxc, lwdnflx, lwdnflxc,      &
@@ -15273,7 +15272,7 @@ integer,external :: omp_get_thread_num
                        progn,                                     & !czhao
                        qndrop3d,f_qndrop,                         & !czhao
 !ccc added for time varying gases.
-                       yr,julian,ghg_input,                       &
+                       yr,julian,                                 &
 !ccc
                        ids,ide, jds,jde, kds,kde,                 & 
                        ims,ime, jms,jme, kms,kme,                 &
@@ -15293,7 +15292,7 @@ integer,external :: omp_get_thread_num
                                        ims,ime, jms,jme, kms,kme, &
                                        its,ite, jts,jte, kts,kte
 
-   INTEGER, INTENT(IN )      ::        ICLOUD, GHG_INPUT
+   INTEGER, INTENT(IN )      ::        ICLOUD
 !
    REAL, DIMENSION( ims:ime, kms:kme, jms:jme )                 , &
          INTENT(IN   ) ::                                   dz8w, &
@@ -15305,8 +15304,8 @@ integer,external :: omp_get_thread_num
                                                            rho3d
 
    REAL, DIMENSION( ims:ime, kms:kme, jms:jme )                 , &
-         INTENT(INOUT)  ::                            RTHRATENLW, &
-                                                      RTHRATENLWC
+         INTENT(INOUT)  ::                            RTHRATENLW
+
    REAL, DIMENSION( ims:ime, jms:jme )                          , &
          INTENT(INOUT)  ::                                   GLW, &
                                                              OLR, &
@@ -15375,8 +15374,8 @@ integer,external :: omp_get_thread_num
 !  Ozone
    REAL, DIMENSION( ims:ime, kms:kme, jms:jme )                 , &
          OPTIONAL                                               , &
-         INTENT(INOUT) :: O33D
-   INTEGER, INTENT(IN ) :: o3input
+         INTENT(IN   ) :: O33D
+   INTEGER, OPTIONAL, INTENT(IN ) :: o3input
 
       real, parameter :: thresh=1.e-9
       real slope
@@ -15491,10 +15490,28 @@ integer,external :: omp_get_thread_num
 
 !ccc To add time-varying trace gases (CO2, N2O and CH4). Read the conc.  from file
 ! then interpolate to date of run.
+#ifdef CLWRFGHG
+! CLWRF-UC June.09
       REAL(8)                                      :: co2, n2o, ch4, cfc11, cfc12
+#else
 
 ! Set trace gas volume mixing ratios, 2005 values, IPCC (2007)
-
+! carbon dioxide (379 ppmv) - this is being replaced by an annual function in v4.2
+    real :: co2
+!   data co2 / 379.e-6 /
+! methane (1774 ppbv)
+    real :: ch4
+    data ch4 / 1774.e-9 / 
+! nitrous oxide (319 ppbv)
+    real :: n2o
+    data n2o / 319.e-9 / 
+! cfc-11 (251 ppt)
+    real :: cfc11
+    data cfc11 / 0.251e-9 / 
+! cfc-12 (538 ppt)
+    real :: cfc12
+    data cfc12 / 0.538e-9 / 
+#endif
 ! cfc-22 (169 ppt)
     real :: cfc22
     data cfc22 / 0.169e-9 / 
@@ -15621,28 +15638,23 @@ integer,external :: omp_get_thread_num
 !                                                              
 ! All fields are ordered vertically from bottom to top
 ! Pressures are in mb
+! Annual function for co2 in WRF v4.2
+      co2 = (280. + 90.*exp(0.02*(yr-2000)))*1.e-6
 !
 !ccc Read time-varying trace gases concentrations and interpolate them to run date.
 !
-   IF ( GHG_INPUT .EQ. 1 ) THEN
-      CALL read_CAMgases(yr,julian,.false.,"RRTMG",co2,n2o,ch4,cfc11,cfc12)
-      IF ( wrf_dm_on_monitor() ) THEN
-        WRITE(message,*)'RRTMG LWF CLWRF interpolated GHG values year:',yr,' julian day:',julian
-        call wrf_debug( 1, message)
-        WRITE(message,*)'  co2vmr: ',co2,' n2ovmr:',n2o,' ch4vmr:',ch4,' cfc11vmr:',cfc11,' cfc12vmr:',cfc12
-        call wrf_debug( 1, message)
-      ENDIF
-   ELSE 
-! Set trace gas volume mixing ratios, 2005 values, IPCC (2007)
-! Annual function for co2 in WRF v4.2
-      co2 = (280. + 90.*exp(0.02*(yr-2000)))*1.e-6
-!     co2 = 379.e-6
-      ch4 = 1774.e-9
-      n2o = 319.e-9
-      cfc11 = 0.251e-9
-      cfc12 = 0.538e-9
-   END IF
+#ifdef CLWRFGHG
 
+   CALL read_CAMgases(yr,julian,"RRTMG",co2,n2o,ch4,cfc11,cfc12)
+
+   IF ( wrf_dm_on_monitor() ) THEN
+     WRITE(message,*)'CAM-CLWRF interpolated values______ year:',yr,' julian day:',julian
+     call wrf_debug( 100, message)
+     WRITE(message,*)'  CAM-CLWRF co2vmr: ',co2,' n2ovmr:',n2o,' ch4vmr:',ch4,' cfc11vmr:',cfc11,' cfc12vmr:',cfc12
+     call wrf_debug( 100, message)
+   ENDIF
+
+#endif
 !ccc
 
    ncol = (jte-jts+1)*(ite-its+1)
@@ -15674,7 +15686,7 @@ integer,external :: omp_get_thread_num
             QV1D(K)=max(0.,QV1D(K))
          ENDDO
 
-         IF (o3input.eq.2) THEN
+         IF (PRESENT(O33D)) THEN
             DO K=kts,kte
                O31D(K)=O33D(I,K,J)
             ENDDO
@@ -16015,16 +16027,20 @@ integer,external :: omp_get_thread_num
          call inirad (o3mmr,plev(icol,:),kts,nlay-1)
 
 ! Steven Cavallo: Changed to nlayers from kte+1
-        if(o3input.eq.2) then
+        if(present(o33d)) then
          do k = kts, nlayers
             o3vmr(icol,k) = o3mmr(k) * amdo
-            if(k.le.kte)then
-               o3vmr(icol,k) = o31d(k)
-            else
+            IF ( PRESENT( O33D ) ) THEN
+            if(o3input .eq. 2)then
+               if(k.le.kte)then
+                 o3vmr(icol,k) = o31d(k)
+               else
 ! apply shifted climatology profile above model top
-               o3vmr(icol,k) = o31d(kte) - o3mmr(kte)*amdo + o3mmr(k)*amdo
-               if(o3vmr(icol,k) .le. 0.)o3vmr(icol,k) = o3mmr(k)*amdo
+                 o3vmr(icol,k) = o31d(kte) - o3mmr(kte)*amdo + o3mmr(k)*amdo
+                 if(o3vmr(icol,k) .le. 0.)o3vmr(icol,k) = o3mmr(k)*amdo
+               endif
             endif
+            ENDIF
          enddo
         else
          do k = kts, nlayers
@@ -16122,11 +16138,9 @@ integer,external :: omp_get_thread_num
 
            if(iceflglw.eq.5)then
               do k = kts, kte
-                 snow_mass_factor = 0.99        ! Assume 1% of snow overlaps the cloud ice category 
-                 gicewp = gicewp + (qs1d(k)*(1.0-snow_mass_factor) * pdel(ncol,k)*100.0 / gravmks * 1000.0)
+                 snow_mass_factor = 1.0
                  if (resnow1d(icol,k) .gt. 130.)then
-                     snow_mass_factor = MIN(snow_mass_factor,                       &
-     &                         (130.0/resnow1d(ncol,k))*(130.0/resnow1d(ncol,k)))
+                     snow_mass_factor = (130.0/resnow1d(icol,k))*(130.0/resnow1d(icol,k))
                      resnow1d(icol,k)   = 130.0
                      IF ( wrf_dm_on_monitor() ) THEN
                        WRITE(message,*)'RRTMG:  reducing snow mass (cloud path) to ', &
@@ -16429,8 +16443,6 @@ integer,external :: omp_get_thread_num
          do k=kts,kte
             tten1d(k) = hr(icol,k)/86400.
             rthratenlw(i,k,j) = tten1d(k)/pi3d(i,k,j)
-            tten1d(k) = hrc(icol,k)/86400.
-            rthratenlwc(i,k,j) = tten1d(k)/pi3d(i,k,j)
          enddo
 !
       end do i_loop2

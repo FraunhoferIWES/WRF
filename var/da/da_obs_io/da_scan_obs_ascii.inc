@@ -48,7 +48,6 @@ subroutine da_scan_obs_ascii (iv, filename, grid)
 ! Initialize 
       if ( thin_conv_ascii ) then
           do n = 1, num_ob_indexes
-             if ( .not. allocated(thinning_grid_conv(n)%icount) ) cycle
              if ( n == radar ) cycle
              call cleangrids_conv(n)
           end do
@@ -272,7 +271,7 @@ subroutine da_scan_obs_ascii (iv, filename, grid)
             if (.not.use_synopobs .or. iv%info(synop)%ntotal == max_synop_input) cycle reports
             if (n==1) iv%info(synop)%ntotal = iv%info(synop)%ntotal + 1
             if (outside) cycle reports
-             if ( thin_conv_opt(synop) > no_thin ) then
+             if ( thin_conv_ascii ) then
                crit = tdiff
                call map2grids_conv(synop,dlat_earth,dlon_earth,crit,iv%info(synop)%nlocal,itx,1,itt,iout,iuse)
                 if ( .not. iuse ) cycle reports
@@ -284,7 +283,7 @@ subroutine da_scan_obs_ascii (iv, filename, grid)
             if (.not.use_shipsobs .or. iv%info(ships)%ntotal == max_ships_input) cycle reports
             if (n==1) iv%info(ships)%ntotal = iv%info(ships)%ntotal + 1
             if (outside) cycle reports
-             if ( thin_conv_opt(ships) > no_thin ) then
+             if ( thin_conv_ascii ) then
                crit = tdiff
                call map2grids_conv(ships,dlat_earth,dlon_earth,crit,iv%info(ships)%nlocal,itx,1,itt,iout,iuse)
                 if ( .not. iuse ) cycle reports
@@ -297,7 +296,7 @@ subroutine da_scan_obs_ascii (iv, filename, grid)
             if (.not.use_metarobs .or. iv%info(metar)%ntotal == max_metar_input) cycle reports
             if (n==1) iv%info(metar)%ntotal = iv%info(metar)%ntotal + 1
             if (outside) cycle reports
-             if ( thin_conv_opt(metar) > no_thin ) then
+             if ( thin_conv_ascii ) then
                crit = tdiff
                call map2grids_conv(metar,dlat_earth,dlon_earth,crit,iv%info(metar)%nlocal,itx,1,itt,iout,iuse)
                 if ( .not. iuse ) cycle reports
@@ -309,7 +308,7 @@ subroutine da_scan_obs_ascii (iv, filename, grid)
             if (.not.use_pilotobs .or. iv%info(pilot)%ntotal == max_pilot_input) cycle reports
             if (n==1) iv%info(pilot)%ntotal = iv%info(pilot)%ntotal + 1
             if (outside) cycle reports
-             if ( thin_conv_opt(pilot) > no_thin ) then
+             if ( thin_conv_ascii ) then
                crit = tdiff
                call map2grids_conv(pilot,dlat_earth,dlon_earth,crit,iv%info(pilot)%nlocal,itx,1,itt,iout,iuse)
                 if ( .not. iuse ) cycle reports
@@ -322,8 +321,7 @@ subroutine da_scan_obs_ascii (iv, filename, grid)
             if (n==1) iv%info(sound)%ntotal     = iv%info(sound)%ntotal + 1
             if (n==1) iv%info(sonde_sfc)%ntotal = iv%info(sonde_sfc)%ntotal + 1
             if (outside) cycle reports
-             if ( thin_conv_opt(sound) > no_thin .or. &
-                  thin_conv_opt(sonde_sfc) > no_thin ) then
+             if ( thin_conv_ascii ) then
                 crit = tdiff
                 call map2grids_conv(sound,dlat_earth,dlon_earth,crit,iv%info(sound)%nlocal,itx,1,itt,iout,iuse)
                 crit = tdiff
@@ -355,7 +353,7 @@ subroutine da_scan_obs_ascii (iv, filename, grid)
 
              if (n==1) iv%info(tamdar_sfc)%ntotal = iv%info(tamdar_sfc)%ntotal + 1
              if (outside) cycle reports
-             if ( thin_conv_opt(tamdar_sfc) > no_thin ) then
+             if ( thin_conv_ascii ) then
                 crit = tdiff
                 call map2grids_conv(tamdar_sfc,dlat_earth,dlon_earth,crit,iv%info(tamdar_sfc)%nlocal,itx,1,itt,iout,iuse)
                 if ( .not. iuse ) cycle reports
@@ -365,9 +363,9 @@ subroutine da_scan_obs_ascii (iv, filename, grid)
            else ! not is_surface
              if ( levs > 0 .and. n==1) iv%info(tamdar)%ntotal = iv%info(tamdar)%ntotal + 1
              if (outside) cycle reports
-             if( thin_conv_opt(tamdar) <= no_thin ) then
+             if( .not. thin_conv_ascii ) then
                 iv%info(tamdar)%nlocal         = iv%info(tamdar)%nlocal + 1
-             else  ! if thin_conv_opt > no_thin
+             else  ! if thin_conv_ascii
                 thin_3d=.true.
                 i1   = platform%loc%i
                 j1   = platform%loc%j
@@ -406,7 +404,7 @@ subroutine da_scan_obs_ascii (iv, filename, grid)
             if (.not.use_mtgirsobs .or. iv%info(mtgirs)%ntotal == max_mtgirs_input) cycle reports
             if (n==1) iv%info(mtgirs)%ntotal     = iv%info(mtgirs)%ntotal + 1
             if (outside) cycle reports
-            if ( thin_conv_opt(mtgirs) > no_thin ) then
+            if ( thin_conv_ascii ) then
                crit = tdiff
                call map2grids_conv(mtgirs,dlat_earth,dlon_earth,crit,iv%info(mtgirs)%nlocal,itx,1,itt,iout,iuse)
                 if ( .not. iuse ) cycle reports
@@ -420,7 +418,7 @@ subroutine da_scan_obs_ascii (iv, filename, grid)
             if (platform%loc%pw%inv > 10.0) cycle reports
             if (n==1) iv%info(satem)%ntotal = iv%info(satem)%ntotal + 1
             if (outside) cycle reports
-            if ( thin_conv_opt(satem) > no_thin ) then
+            if ( thin_conv_ascii ) then
                crit = tdiff
                call map2grids_conv(satem,dlat_earth,dlon_earth,crit,iv%info(satem)%nlocal,itx,1,itt,iout,iuse)
                 if ( .not. iuse ) cycle reports
@@ -436,7 +434,7 @@ subroutine da_scan_obs_ascii (iv, filename, grid)
                if (.not.use_polaramvobs .or. iv%info(polaramv)%ntotal == max_polaramv_input) cycle reports
                if (n==1) iv%info(polaramv)%ntotal = iv%info(polaramv)%ntotal + 1
                if (outside) cycle reports
-               if ( thin_conv_opt(polaramv) > no_thin ) then
+               if ( thin_conv_ascii ) then
                   crit = tdiff
                   call map2grids_conv(polaramv,dlat_earth,dlon_earth,crit,iv%info(polaramv)%nlocal,itx,1,itt,iout,iuse)
                   if ( .not. iuse ) cycle reports
@@ -448,7 +446,7 @@ subroutine da_scan_obs_ascii (iv, filename, grid)
                if (.not.use_geoamvobs .or. iv%info(geoamv)%ntotal == max_geoamv_input) cycle reports
                if (n==1) iv%info(geoamv)%ntotal = iv%info(geoamv)%ntotal + 1
                if (outside) cycle reports
-               if ( thin_conv_opt(geoamv) > no_thin ) then
+               if ( thin_conv_ascii ) then
                   crit = tdiff
                   call map2grids_conv(geoamv,dlat_earth,dlon_earth,crit,iv%info(geoamv)%nlocal,itx,1,itt,iout,iuse)
                    if ( .not. iuse ) cycle reports
@@ -462,9 +460,9 @@ subroutine da_scan_obs_ascii (iv, filename, grid)
             if (n==1) iv%info(airep)%ntotal = iv%info(airep)%ntotal + 1
             if (outside) cycle reports
 
-            if( thin_conv_opt(airep) <= no_thin ) then
+            if( .not. thin_conv_ascii ) then
                iv%info(airep)%nlocal         = iv%info(airep)%nlocal + 1
-            else  ! if thin_conv_opt > no_thin
+            else  ! if thin_conv_ascii
                thin_3d=.true.
                i1   = platform%loc%i
                j1   = platform%loc%j
@@ -505,7 +503,7 @@ subroutine da_scan_obs_ascii (iv, filename, grid)
                   iv%info(gpspw)%ntotal == max_gpspw_input) cycle reports
             if (n==1) iv%info(gpspw)%ntotal = iv%info(gpspw)%ntotal + 1
             if (outside) cycle reports
-            if ( thin_conv_opt(gpspw) > no_thin ) then
+            if ( thin_conv_ascii ) then
                crit = tdiff
                call map2grids_conv(gpspw,dlat_earth,dlon_earth,crit,iv%info(gpspw)%nlocal,itx,1,itt,iout,iuse)
                if ( .not. iuse ) cycle reports
@@ -518,7 +516,7 @@ subroutine da_scan_obs_ascii (iv, filename, grid)
             if ( ob_format_gpsro /= ob_format_ascii ) cycle reports
             if (n==1) iv%info(gpsref)%ntotal = iv%info(gpsref)%ntotal + 1
             if (outside) cycle reports
-            if ( thin_conv_opt(gpsref) > no_thin ) then
+            if ( thin_conv_ascii ) then
                crit = tdiff
                call map2grids_conv(gpsref,dlat_earth,dlon_earth,crit,iv%info(gpsref)%nlocal,itx,1,itt,iout,iuse)
                if ( .not. iuse ) cycle reports
@@ -558,7 +556,7 @@ subroutine da_scan_obs_ascii (iv, filename, grid)
             if (.not.use_ssmt1obs .or. iv%info(ssmt1)%ntotal == max_ssmt1_input) cycle reports
             if (n==1) iv%info(ssmt1)%ntotal = iv%info(ssmt1)%ntotal + 1
             if (outside) cycle reports
-            if ( thin_conv_opt(ssmt1) > no_thin ) then
+            if ( thin_conv_ascii ) then
                crit = tdiff
                call map2grids_conv(ssmt1,dlat_earth,dlon_earth,crit,iv%info(ssmt1)%nlocal,itx,1,itt,iout,iuse)
                if ( .not. iuse ) cycle reports
@@ -572,7 +570,7 @@ subroutine da_scan_obs_ascii (iv, filename, grid)
             if (.not.use_ssmt2obs .or. iv%info(ssmt2)%ntotal == max_ssmt2_input) cycle reports
             if (n==1) iv%info(ssmt2)%ntotal = iv%info(ssmt2)%ntotal + 1
             if (outside) cycle reports
-            if ( thin_conv_opt(ssmt2) > no_thin ) then
+            if ( thin_conv_ascii ) then
                crit = tdiff
                call map2grids_conv(ssmt2,dlat_earth,dlon_earth,crit,iv%info(ssmt2)%nlocal,itx,1,itt,iout,iuse)
                if ( .not. iuse ) cycle reports
@@ -585,7 +583,7 @@ subroutine da_scan_obs_ascii (iv, filename, grid)
             if (.not.use_qscatobs .or. iv%info(qscat)%ntotal == max_qscat_input) cycle reports
             if (n==1) iv%info(qscat)%ntotal = iv%info(qscat)%ntotal + 1
             if (outside) cycle reports
-            if ( thin_conv_opt(qscat) > no_thin ) then
+            if ( thin_conv_ascii ) then
                crit = tdiff
                call map2grids_conv(qscat,dlat_earth,dlon_earth,crit,iv%info(qscat)%nlocal,itx,1,itt,iout,iuse)
                if ( .not. iuse ) cycle reports
@@ -596,7 +594,7 @@ subroutine da_scan_obs_ascii (iv, filename, grid)
             if (.not.use_profilerobs .or. iv%info(profiler)%ntotal == max_profiler_input) cycle reports
             if (n==1) iv%info(profiler)%ntotal = iv%info(profiler)%ntotal + 1
             if (outside) cycle reports
-            if ( thin_conv_opt(profiler) > no_thin ) then
+            if ( thin_conv_ascii ) then
                crit = tdiff
                call map2grids_conv(profiler,dlat_earth,dlon_earth,crit,iv%info(profiler)%nlocal,itx,1,itt,iout,iuse)
                if ( .not. iuse ) cycle reports
@@ -608,7 +606,7 @@ subroutine da_scan_obs_ascii (iv, filename, grid)
             if (.not.use_bogusobs .or. iv%info(bogus)%ntotal == max_bogus_input) cycle reports
             if (n==1) iv%info(bogus)%ntotal = iv%info(bogus)%ntotal + 1
             if (outside) cycle reports
-            if ( thin_conv_opt(bogus) > no_thin ) then
+            if ( thin_conv_ascii ) then
                crit = tdiff
                call map2grids_conv(bogus,dlat_earth,dlon_earth,crit,iv%info(bogus)%nlocal,itx,1,itt,iout,iuse)
                if ( .not. iuse ) cycle reports
@@ -620,7 +618,7 @@ subroutine da_scan_obs_ascii (iv, filename, grid)
             if (.not.use_buoyobs .or. iv%info(buoy)%ntotal == max_buoy_input) cycle reports
             if (n==1) iv%info(buoy)%ntotal = iv%info(buoy)%ntotal + 1
             if (outside) cycle reports
-            if ( thin_conv_opt(buoy) > no_thin ) then
+            if ( thin_conv_ascii ) then
                crit = tdiff
                call map2grids_conv(buoy,dlat_earth,dlon_earth,crit,iv%info(buoy)%nlocal,itx,1,itt,iout,iuse)
                if ( .not. iuse ) cycle reports
@@ -632,7 +630,7 @@ subroutine da_scan_obs_ascii (iv, filename, grid)
             if (.not.use_airsretobs .or. iv%info(airsr)%ntotal == max_airsr_input) cycle reports
             if (n==1) iv%info(airsr)%ntotal = iv%info(airsr)%ntotal + 1
             if (outside) cycle reports
-            if ( thin_conv_opt(airsr) > no_thin ) then
+            if ( thin_conv_ascii ) then
                crit = tdiff
                call map2grids_conv(airsr,dlat_earth,dlon_earth,crit,iv%info(airsr)%nlocal,itx,1,itt,iout,iuse)
                if ( .not. iuse ) cycle reports

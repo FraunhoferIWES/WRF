@@ -6,7 +6,6 @@ Revisions:
 */
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <math.h>
 #include "grib_lookup.h"	/* for Parm/Ctr/Levl/Mdl_defn */
 #include "dprints.h"		/* for dprints */

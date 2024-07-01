@@ -1,7 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <ctype.h>
 #include "dprints.h"	  /* for debug printing  */
 #include "grib_lookup.h"  /* LVL_DEFN */
 #include "gribfuncs.h"		/* prototypes */

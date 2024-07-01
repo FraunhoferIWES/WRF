@@ -2,7 +2,6 @@
 #include "gridnav.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
 #include "wrf_projection.h"
 
