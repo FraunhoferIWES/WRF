@@ -203,15 +203,12 @@ CONTAINS
       ! END LICENSE
           speed1=0.
           speed2=0.
-          a_ind=0.01
           if (ktop.eq.1) then
            speedhub=sqrt(u(i,1,j)**2.+v(i,1,j)**2.)*hubheight(kt)/z1
-           speedhub=speedhub/((1-a_ind)**nturb) ! BAMS
           else
            speed1=sqrt(u(i,kbot,j)**2.+v(i,kbot,j)**2.)
            speed2=sqrt(u(i,ktop,j)**2.+v(i,ktop,j)**2.)
            speedhub=speed1+((speed2-speed1)/(z2-z1))*(hubheight(kt)-z1)
-           speedhub=speedhub/((1-a_ind)**nturb) ! BAMS
           endif
 !
 ! ... calculate TKE, power and thrust coeffs
